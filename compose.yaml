@@ -1,23 +1,4 @@
 services:
-  mysql:
-    image: 'mysql:latest'
-    container_name: medical-office-mysql
-    environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
-    ports:
-      - '3306:3306'
-    volumes:
-      - mysql_data:/var/lib/mysql
-    networks:
-      - medical-office-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-
   backend:
     build:
       context: ./backend
@@ -25,13 +6,8 @@ services:
     container_name: medical-office-backend
     ports:
       - '8080:8080'
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/mydatabase
-      - SPRING_DATASOURCE_USERNAME=myuser
-      - SPRING_DATASOURCE_PASSWORD=secret
-    depends_on:
-      mysql:
-        condition: service_healthy
+    env_file:
+      - .env
     networks:
       - medical-office-network
 
@@ -46,9 +22,6 @@ services:
       - backend
     networks:
       - medical-office-network
-
-volumes:
-  mysql_data:
 
 networks:
   medical-office-network:

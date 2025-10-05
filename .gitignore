@@ -26,3 +26,6 @@ frontend/.env.*.local
 # Database
 *.db
 *.sqlite
+
+# Environment variables
+.env
