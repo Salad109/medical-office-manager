@@ -1,0 +1,67 @@
+Obsługa gabinetu lekarskiego
+
+Opis miejsca tworzonego oprogramowania:
+System zostanie wdrożony w prywatnym gabinecie lekarskim. Jego celem jest usprawnienie procesu rejestracji pacjentów oraz obsługi wizyt.
+Oprogramowanie umożliwi pacjentom samodzielną rejestrację, lekarzom szybki dostęp do historii wizyt i dokumentacji, a recepcjonistom sprawne zarządzanie terminarzem oraz kontami.
+
+Zasoby ludzkie:
+Pacjenci - zakłada konto, loguje się, przegląda dostępne terminy wizyt, rejestruje lub anuluje wizytę.
+Recepcjonista - rejestruje wizyty w imieniu pacjentów, modyfikuje i usuwa rezerwacje, zarządza kontami użytkowników.
+Lekarz - przegląda historię wizyt pacjentów, oznacza wizyty jako zrealizowane, dodaje notatki medyczne.
+
+Przepisy i strategie:
+Rozporządzeniem o Ochronie Danych Osobowych (RODO) – dane pacjentów muszą być przetwarzane zgodnie z zasadami poufności i integralności.
+Ustawą o prawach pacjenta i Rzeczniku Praw Pacjenta – obowiązek zapewnienia dostępu pacjenta do własnej dokumentacji medycznej.
+Strategią gabinetu – digitalizacja dokumentacji i minimalizacja obsługi telefonicznej rejestracji.
+Polityką bezpieczeństwa informacji – stosowanie silnych haseł, wielopoziomowego uwierzytelniania i szyfrowania transmisji danych.
+
+Dane techniczne:
+• System webowy dostępny z poziomu przeglądarki internetowej.
+• Przewidywana maksymalna liczba jednoczesnych użytkowników: 20.
+• Średni czas odpowiedzi systemu przy obciążeniu nominalnym: < 2 s.
+• Dostępność systemu: >= 99,5% w godzinach 7:00–19:00.
+• Przewidywany rozmiar bazy danych: do 10 GB po roku eksploatacji.
+• Backup automatyczny: co 24 godziny.
+• Integracja z modułem powiadomień SMS i e-mail, realizowanym przez zewnętrzne API.
+
+Wymagania funkcjonalne:
+Każdy aktor może zalogować się do konta za pomocą e-maila i hasła.
+Pacjent może przeglądać dostępne terminy wizyt.
+Pacjent lub recepcjonista może zarejestrować wizytę w wybranym terminie.
+Pacjent może anulować wcześniej umówioną wizytę.
+Recepcjonista może usuwać błędne rezerwacje.
+Recepcjonista może usuwać konta użytkowników.
+Recepcjonista może wyszukiwać pacjentów i wizyty po nazwisku, imieniu lub dacie.
+Recepcjonista może tworzyć konta użytkowników.
+Recepcjonista może modyfikować dane kont użytkowników.
+Lekarz może przeglądać historię wizyt swoich pacjentów.
+Lekarz może oznaczyć wizytę jako zrealizowaną.
+
+Wymagania niefunkcjonalne:
+System działa w architekturze klient–serwer z interfejsem webowym dostępnym w przeglądarce (Chrome, Firefox).
+Czas odpowiedzi systemu poniżej 2 s dla 95% zapytań.
+Dostępność systemu conajmniej 99,5% w godzinach
+7:00–19:00.
+Transmisja danych zabezpieczona protokołem SSL/TLS.
+Dane pacjentów przechowywane zgodnie z RODO i na serwerach w UE.
+Hasła przechowywane algorytmem hashującym.
+System automatycznie wykonuje kopie zapasowe co 24 godziny.
+System automatycznie wylogowuje użytkownika po 5 minutach bezczynności.
+Skalowalność: możliwość rozbudowy o nowe moduły (np. e-recepty).
+Czas ponownego uruchomienia po awarii maks. 1 godzina.
+
+Przypadki użycia:
+
+PU00a – Obsługa wizyt:
+PU2 – Wyświetlanie dostępnych terminów wizyt
+PU3 – Rejestracja wizyty
+PU3 – Rejestracja wizyty
+PU5 – Przeglądanie historii wizyt
+PU6 – Oznaczanie wizyty jako zrealizowanej
+PU10 – Wyszukiwanie pacjentów oraz wizyt
+
+PU00b – Obsługa kont:
+PU1 – Zalogowanie
+PU7 – Tworzenie kont użytkowników
+PU8 – Modyfikacja kont użytkowników
+PU9 – Usuwanie kont użytkowników
