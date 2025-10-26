@@ -1,68 +1,78 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
+  color: #0b2545;
+  background-color: #f4f8fb;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(circle at top, rgba(123, 180, 255, 0.35), transparent 40%),
+    radial-gradient(circle at bottom, rgba(169, 224, 255, 0.45), transparent 45%), #eef4ff;
+}
+
+#root {
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.glassy-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(18px);
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.glassy-nav {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(18px);
+  padding: 0.9rem 1.5rem;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+.auth-card {
+  border-radius: 1.5rem;
+}
+
+.btn-primary {
+  background-image: linear-gradient(135deg, #4c8bf5, #37b3ff);
+  border: none;
+  box-shadow: 0 0.75rem 1.25rem rgba(76, 139, 245, 0.3);
+}
+
+.btn-outline-primary {
+  color: #2871e6;
+  border-color: rgba(40, 113, 230, 0.4);
+}
+
+.table > :not(caption) > * > * {
+  background-color: transparent;
+}
+
+.card {
+  border-radius: 1rem;
+}
+
+input,
+textarea,
+select {
+  border-radius: 0.85rem !important;
+  border-color: rgba(10, 77, 163, 0.1) !important;
+}
+
+.badge {
+  border-radius: 999px;
+}
+
+@media (max-width: 576px) {
+  .glassy-nav {
+    border-radius: 1.25rem;
   }
 }

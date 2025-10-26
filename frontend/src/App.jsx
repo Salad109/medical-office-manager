@@ -1,12 +1,30 @@
-import './App.css'
+import { Navigate, Route, Routes } from 'react-router-dom';
+import DashboardLayout from './components/DashboardLayout';
+import ProtectedRoute from './components/ProtectedRoute';
+import DoctorDashboard from './pages/DoctorDashboard';
+import LoginPage from './pages/LoginPage';
+import PatientDashboard from './pages/PatientDashboard';
+import ReceptionistDashboard from './pages/ReceptionistDashboard';
 
-function App() {
-  return (
-    <div>
-      <h1>Medical Office Manager</h1>
-      <p>Hello World!</p>
-    </div>
-  )
-}
+const roleBasedRoutes = [
+  { path: '/patient', element: <PatientDashboard />, roles: ['PATIENT'] },
+  { path: '/doctor', element: <DoctorDashboard />, roles: ['DOCTOR'] },
+  { path: '/receptionist', element: <ReceptionistDashboard />, roles: ['RECEPTIONIST'] },
+];
 
-export default App
+const App = () => (
+  <Routes>
+    <Route path="/login" element={<LoginPage />} />
+    {roleBasedRoutes.map(({ path, element, roles }) => (
+      <Route key={path} element={<ProtectedRoute allowedRoles={roles} />}>
+        <Route element={<DashboardLayout />}>
+          <Route path={path} element={element} />
+        </Route>
+      </Route>
+    ))}
+    <Route path="/" element={<Navigate to="/login" replace />} />
+    <Route path="*" element={<Navigate to="/login" replace />} />
+  </Routes>
+);
+
+export default App;
