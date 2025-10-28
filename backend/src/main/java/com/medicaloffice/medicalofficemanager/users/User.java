@@ -17,6 +17,9 @@ public class User {
     private Long id;
 
     @NotNull
+    private String username;
+
+    @NotNull
     @Column(name = "password_hash")
     private String passwordHash;
 
