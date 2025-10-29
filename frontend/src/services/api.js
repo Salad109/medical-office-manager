@@ -42,9 +42,16 @@ async function parsePayload(response) {
 }
 
 export async function login(credentials) {
-  return apiFetch('/auth/login', {
+  return apiFetch('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
+  });
+}
+
+export async function register(registerData) {
+  return apiFetch('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(registerData),
   });
 }
 
@@ -95,6 +102,7 @@ export const deleteAppointment = (id) =>
 
 export default {
   login,
+  register,
   getAvailableAppointments,
   bookAppointment,
   getDoctorVisits,

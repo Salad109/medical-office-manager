@@ -1,0 +1,76 @@
+### Variables
+@baseUrl = http://localhost:8080/api
+@token =
+
+### Register a new patient
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "patient1",
+  "password": "password123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "phoneNumber": "123456789",
+  "pesel": "12345678901",
+  "role": "PATIENT"
+}
+
+### Register a new doctor
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "doctor1",
+  "password": "password123",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "phoneNumber": "987654321",
+  "pesel": "98765432109",
+  "role": "DOCTOR"
+}
+
+### Register a new receptionist
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "username": "receptionist1",
+  "password": "password123",
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "phoneNumber": "555123456",
+  "pesel": "55512345678",
+  "role": "RECEPTIONIST"
+}
+
+### Login as patient
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "patient1",
+  "password": "password123"
+}
+
+### Login as doctor
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "doctor1",
+  "password": "password123"
+}
+
+### Login as receptionist
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "receptionist1",
+  "password": "password123"
+}
+
+### Test authenticated endpoint (replace @token)
+GET {{baseUrl}}/appointments
+Authorization: Bearer {{token}}
