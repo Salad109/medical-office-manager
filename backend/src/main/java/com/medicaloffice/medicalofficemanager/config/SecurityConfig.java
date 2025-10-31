@@ -1,5 +1,6 @@
 package com.medicaloffice.medicalofficemanager.config;
 
+import com.medicaloffice.medicalofficemanager.audit.AuditFilter;
 import com.medicaloffice.medicalofficemanager.auth.JwtAuthenticationEntryPoint;
 import com.medicaloffice.medicalofficemanager.auth.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
@@ -25,7 +26,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter, AuditFilter auditFilter) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
@@ -39,7 +40,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(auditFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
