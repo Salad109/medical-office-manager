@@ -1,84 +1,70 @@
-package com.medicaloffice.medicalofficemanager.auth;
+package com.medicaloffice.medicalofficemanager.auth
 
-import com.medicaloffice.medicalofficemanager.auth.dto.AuthResponse;
-import com.medicaloffice.medicalofficemanager.auth.dto.LoginRequest;
-import com.medicaloffice.medicalofficemanager.users.Role;
-import com.medicaloffice.medicalofficemanager.users.User;
-import com.medicaloffice.medicalofficemanager.users.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
+import com.medicaloffice.medicalofficemanager.auth.dto.AuthResponse
+import com.medicaloffice.medicalofficemanager.auth.dto.LoginRequest
+import com.medicaloffice.medicalofficemanager.users.Role
+import com.medicaloffice.medicalofficemanager.users.User
+import com.medicaloffice.medicalofficemanager.users.UserRepository
+import org.slf4j.LoggerFactory
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.stereotype.Service
 
 @Service
-public class AuthService {
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+class AuthService(
+    private val authenticationManager: AuthenticationManager,
+    private val jwtService: JwtService,
+    private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder
+) {
+    private val log = LoggerFactory.getLogger(AuthService::class.java)
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    fun login(request: LoginRequest): AuthResponse {
+        val authentication = authenticationManager.authenticate(
+            UsernamePasswordAuthenticationToken(
+                request.username(),
+                request.password()
+            )
+        )
 
-    public AuthService(AuthenticationManager authenticationManager,
-                       JwtService jwtService,
-                       UserRepository userRepository,
-                       PasswordEncoder passwordEncoder) {
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+        val userDetails = authentication.principal as UserDetails
+        val token = jwtService.generateToken(userDetails)
+
+        val role = (userDetails as? CustomUserDetails)?.role
+            ?: throw IllegalStateException("Expected CustomUserDetails but got ${userDetails::class.simpleName}")
+
+        log.info("User '{}' logged in successfully", request.username())
+        return AuthResponse(token, role)
     }
 
-    public AuthResponse login(LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()
-                )
-        );
-
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtService.generateToken(userDetails);
-
-        String role = "";
-        if (userDetails instanceof CustomUserDetails customUserDetails) {
-            role = customUserDetails.getRole();
+    fun register(request: RegisterRequest): RegisterResponse {
+        require(!userRepository.existsByUsername(request.username())) {
+            "Username already exists"
         }
 
-        log.info("User '{}' logged in successfully", request.username());
-        return new AuthResponse(token, role);
-    }
-
-    public RegisterResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username already exists");
+        require(!userRepository.existsByPhoneNumber(request.phoneNumber())) {
+            "Phone number already exists"
         }
 
-        if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
-            throw new IllegalArgumentException("Phone number already exists");
+        require(request.role() != Role.PATIENT || !request.pesel().isNullOrBlank()) {
+            "PESEL is required for patients"
         }
 
-        if (request.role() == Role.PATIENT &&
-                (request.pesel() == null || request.pesel().trim().isEmpty())) {
-            throw new IllegalArgumentException("PESEL is required for patients");
+        val user = User().apply {
+            username = request.username()
+            passwordHash = passwordEncoder.encode(request.password())
+            firstName = request.firstName()
+            lastName = request.lastName()
+            phoneNumber = request.phoneNumber()
+            pesel = request.pesel()
+            role = request.role()
         }
 
-        User user = new User();
-        user.setUsername(request.username());
-        user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-        user.setPhoneNumber(request.phoneNumber());
-        user.setPesel(request.pesel());
-        user.setRole(request.role());
+        userRepository.save(user)
 
-        userRepository.save(user);
-
-        log.info("User '{}' registered successfully with role {}", request.username(), request.role());
-        return new RegisterResponse("User registered successfully", request.username());
+        log.info("User '{}' registered successfully with role {}", request.username(), request.role())
+        return RegisterResponse("User registered successfully", request.username())
     }
 }

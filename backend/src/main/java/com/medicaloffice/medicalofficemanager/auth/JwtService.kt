@@ -1,75 +1,67 @@
-package com.medicaloffice.medicalofficemanager.auth;
+package com.medicaloffice.medicalofficemanager.auth
 
-import com.medicaloffice.medicalofficemanager.config.JwtProperties;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
+import com.medicaloffice.medicalofficemanager.config.JwtProperties
+import io.jsonwebtoken.Claims
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.security.Keys
+import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.stereotype.Service
+import java.util.*
+import javax.crypto.SecretKey
 
 @Service
-public class JwtService {
-    private final JwtProperties jwtProperties;
-    private final SecretKey secretKey;
-
-    public JwtService(JwtProperties jwtProperties) {
-        this.jwtProperties = jwtProperties;
-        // Decode the base64-encoded secret
-        byte[] keyBytes = Base64.getDecoder().decode(jwtProperties.getSecret());
-        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+class JwtService(
+    private val jwtProperties: JwtProperties
+) {
+    private val secretKey: SecretKey = run {
+        val keyBytes = Base64.getDecoder().decode(jwtProperties.secret)
+        Keys.hmacShaKeyFor(keyBytes)
     }
 
-    public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
+    fun generateToken(userDetails: UserDetails): String {
+        val claims = mutableMapOf<String, Any>()
 
-        if (userDetails instanceof CustomUserDetails customUserDetails) {
-            claims.put("userId", customUserDetails.getUserId());
-            claims.put("role", customUserDetails.getRole());
+        if (userDetails is CustomUserDetails) {
+            claims["userId"] = userDetails.userId
+            claims["role"] = userDetails.role
         }
 
         return Jwts.builder()
-                .claims(claims)
-                .subject(userDetails.getUsername())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + jwtProperties.getExpiration()))
-                .signWith(secretKey)
-                .compact();
+            .claims(claims)
+            .subject(userDetails.username)
+            .issuedAt(Date(System.currentTimeMillis()))
+            .expiration(Date(System.currentTimeMillis() + jwtProperties.expiration))
+            .signWith(secretKey)
+            .compact()
     }
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    fun extractUsername(token: String): String {
+        return extractClaim(token, Claims::getSubject)
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+    private fun <T> extractClaim(token: String, claimsResolver: (Claims) -> T): T {
+        val claims = extractAllClaims(token)
+        return claimsResolver(claims)
     }
 
-    private Claims extractAllClaims(String token) {
+    private fun extractAllClaims(token: String): Claims {
         return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .payload
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    fun isTokenValid(token: String, userDetails: UserDetails): Boolean {
+        val username = extractUsername(token)
+        return username == userDetails.username && !isTokenExpired(token)
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    private fun isTokenExpired(token: String): Boolean {
+        return extractExpiration(token).before(Date())
     }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    private fun extractExpiration(token: String): Date {
+        return extractClaim(token, Claims::getExpiration)
     }
 }
