@@ -1,6 +1,6 @@
 ### Variables
 @baseUrl = http://localhost:8080/api
-@token =
+@token = eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjIsInJvbGUiOiJET0NUT1IiLCJzdWIiOiJkb2N0b3IxIiwiaWF0IjoxNzYxOTM3OTQ4LCJleHAiOjE3NjE5NDE1NDh9.pFSBGrZDZKCsvG7w4bbYvCpRxNq5walZvE9RJhEbWpOQptPRLVhspzshYZg18F2swo2i5VSJiETlayQLqNrYwQ
 
 ### Register a new patient
 POST {{baseUrl}}/auth/register
@@ -9,8 +9,8 @@ Content-Type: application/json
 {
   "username": "patient1",
   "password": "password123",
-  "firstName": "John",
-  "lastName": "Doe",
+  "firstName": "Jan",
+  "lastName": "Kowalski",
   "phoneNumber": "123456789",
   "pesel": "12345678901",
   "role": "PATIENT"
@@ -23,8 +23,8 @@ Content-Type: application/json
 {
   "username": "doctor1",
   "password": "password123",
-  "firstName": "Jane",
-  "lastName": "Smith",
+  "firstName": "Janina",
+  "lastName": "Nowak",
   "phoneNumber": "987654321",
   "pesel": "98765432109",
   "role": "DOCTOR"
@@ -37,8 +37,8 @@ Content-Type: application/json
 {
   "username": "receptionist1",
   "password": "password123",
-  "firstName": "Alice",
-  "lastName": "Johnson",
+  "firstName": "Grzegorz",
+  "lastName": "Brzęczyszczykiewicz",
   "phoneNumber": "555123456",
   "pesel": "55512345678",
   "role": "RECEPTIONIST"
@@ -71,6 +71,94 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### Test authenticated endpoint (replace @token)
-GET {{baseUrl}}/appointments
+### View available slots (public, no auth)
+GET {{baseUrl}}/appointments/available?date=2025-11-01
+
+### Login as patient and book appointment
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "patient1",
+  "password": "password123"
+}
+
+# Copy token from response, update @token variable at top
+
+### Book appointment as patient (for self)
+POST {{baseUrl}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "date": "2025-11-01",
+  "time": "09:00"
+}
+
+### Patient tries to book for another patient (should fail)
+POST {{baseUrl}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": 2,
+  "date": "2025-11-01",
+  "time": "09:30"
+}
+
+### View available slots again (should see 09:00 is now gone)
+GET {{baseUrl}}/appointments/available?date=2025-11-01
+
+### Login as receptionist
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "receptionist1",
+  "password": "password123"
+}
+
+# Update @token with receptionist token
+
+### Receptionist books appointment for patient
+POST {{baseUrl}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "date": "2025-11-01",
+  "time": "10:00"
+}
+
+### Receptionist cancels any appointment
+DELETE {{baseUrl}}/appointments/1
+Authorization: Bearer {{token}}
+
+### Login as doctor
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "doctor1",
+  "password": "password123"
+}
+
+# Update @token with doctor token
+
+### Doctor tries to book appointment (should fail)
+POST {{baseUrl}}/appointments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "patientId": 1,
+  "date": "2025-11-01",
+  "time": "11:00"
+}
+
+### Patient cancels own appointment
+# Switch back to patient token, then:
+DELETE {{baseUrl}}/appointments/2
 Authorization: Bearer {{token}}
