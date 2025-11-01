@@ -1,33 +1,26 @@
-package com.medicaloffice.medicalofficemanager.visits;
+package com.medicaloffice.medicalofficemanager.visits
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*
+import jakarta.validation.constraints.NotNull
+import java.time.LocalDateTime
 
-import java.time.LocalDateTime;
-
-@Setter
-@Getter
 @Entity
-@NoArgsConstructor
 @Table(name = "visits")
-public class Visit {
+class Visit(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    var id: Long? = null,
 
-    @NotNull
+    @field:NotNull
     @Column(name = "appointment_id")
-    private Long appointmentId;
+    var appointmentId: Long? = null,
 
-    private String notes;
+    var notes: String? = null,
 
-    @NotNull
+    @field:NotNull
     @Column(name = "completed_by_doctor_id")
-    private Long completedByDoctorId;
+    var completedByDoctorId: Long? = null,
 
     @Column(name = "completed_at")
-    private LocalDateTime completedAt;
-}
+    var completedAt: LocalDateTime? = null
+)

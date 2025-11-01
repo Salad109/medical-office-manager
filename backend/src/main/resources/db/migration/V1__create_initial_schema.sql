@@ -1,11 +1,11 @@
 CREATE TABLE users
 (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username      VARCHAR(50) NOT NULL UNIQUE,
-    password_hash VARCHAR(60) NOT NULL,
-    first_name    VARCHAR(50) NOT NULL,
-    last_name     VARCHAR(50) NOT NULL,
-    phone_number  VARCHAR(15) NOT NULL UNIQUE,
+    username      VARCHAR(50)                                NOT NULL UNIQUE,
+    password_hash VARCHAR(60)                                NOT NULL,
+    first_name    VARCHAR(50)                                NOT NULL,
+    last_name     VARCHAR(50)                                NOT NULL,
+    phone_number  VARCHAR(15)                                NOT NULL UNIQUE,
     pesel         VARCHAR(11),
     role          ENUM ('PATIENT', 'DOCTOR', 'RECEPTIONIST') NOT NULL
 ) DEFAULT CHARSET = utf8mb4;
@@ -13,9 +13,9 @@ CREATE TABLE users
 CREATE TABLE appointments
 (
     id               BIGINT AUTO_INCREMENT PRIMARY KEY,
-    patient_id       BIGINT NOT NULL,
-    appointment_date DATE   NOT NULL,
-    appointment_time TIME   NOT NULL,
+    patient_id       BIGINT                                     NOT NULL,
+    appointment_date DATE                                       NOT NULL,
+    appointment_time TIME                                       NOT NULL,
     status           ENUM ('SCHEDULED', 'COMPLETED', 'NO_SHOW') NOT NULL DEFAULT 'SCHEDULED',
     FOREIGN KEY (patient_id) REFERENCES users (id) ON DELETE CASCADE,
     UNIQUE (appointment_date, appointment_time)

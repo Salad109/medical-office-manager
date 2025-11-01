@@ -1,11 +1,11 @@
-package com.medicaloffice.medicalofficemanager.auth;
+package com.medicaloffice.medicalofficemanager.users.dto;
 
 import com.medicaloffice.medicalofficemanager.users.Role;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-public record RegisterRequest(
+public record UserCreationRequest(
         @NotBlank(message = "Username is required")
         @Size(max = 50, message = "Username must not exceed 50 characters")
         String username,
