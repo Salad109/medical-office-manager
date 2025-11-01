@@ -44,7 +44,11 @@ class AppointmentService(
     }
 
     @Transactional
-    fun bookAppointment(request: BookAppointmentRequest, currentUserId: Long, currentUserRole: Role): AppointmentResponse {
+    fun bookAppointment(
+        request: BookAppointmentRequest,
+        currentUserId: Long,
+        currentUserRole: Role
+    ): AppointmentResponse {
         // Validate user role and permissions
         when (currentUserRole) {
             Role.DOCTOR -> throw IllegalArgumentException("Doctors cannot book appointments")
@@ -53,6 +57,7 @@ class AppointmentService(
                     "Patients can only book appointments for themselves"
                 }
             }
+
             Role.RECEPTIONIST -> {
                 val patient = userRepository.findById(request.patientId)
                     .orElseThrow { IllegalArgumentException("Patient not found with ID: ${request.patientId}") }
@@ -108,9 +113,11 @@ class AppointmentService(
                     "Patients can only cancel their own appointments"
                 }
             }
+
             Role.RECEPTIONIST -> {
                 // Receptionists can cancel any appointment
             }
+
             Role.DOCTOR -> throw IllegalArgumentException("Doctors cannot cancel appointments")
         }
 

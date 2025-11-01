@@ -1,4 +1,5 @@
-DELIMITER //
+DELIMITER
+//
 
 -- Users table triggers
 CREATE TRIGGER audit_users_insert
@@ -126,4 +127,4 @@ BEGIN
             ));
 END//
 
-DELIMITER ;
+DELIMITER;
