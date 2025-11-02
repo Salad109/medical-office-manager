@@ -13,13 +13,13 @@ class Visit(
 
     @field:NotNull
     @Column(name = "appointment_id")
-    var appointmentId: Long? = null,
+    var appointmentId: Long,
 
     var notes: String? = null,
 
     @field:NotNull
     @Column(name = "completed_by_doctor_id")
-    var completedByDoctorId: Long? = null,
+    var completedByDoctorId: Long,
 
     @Column(name = "completed_at")
     var completedAt: LocalDateTime? = null

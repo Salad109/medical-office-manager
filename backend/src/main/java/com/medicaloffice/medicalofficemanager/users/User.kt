@@ -11,27 +11,27 @@ class User(
     var id: Long? = null,
 
     @field:NotNull
-    var username: String? = null,
+    var username: String,
 
     @field:NotNull
     @Column(name = "password_hash")
-    var passwordHash: String? = null,
+    var passwordHash: String,
 
     @field:NotNull
     @Column(name = "first_name")
-    var firstName: String? = null,
+    var firstName: String,
 
     @field:NotNull
     @Column(name = "last_name")
-    var lastName: String? = null,
+    var lastName: String,
 
     @field:NotNull
     @Column(name = "phone_number")
-    var phoneNumber: String? = null,
+    var phoneNumber: String,
 
     var pesel: String? = null,
 
     @field:NotNull
     @Enumerated(EnumType.STRING)
-    var role: Role? = null
+    var role: Role
 )

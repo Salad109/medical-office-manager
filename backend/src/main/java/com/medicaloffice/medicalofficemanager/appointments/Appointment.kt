@@ -14,17 +14,17 @@ class Appointment(
 
     @field:NotNull
     @Column(name = "patient_id")
-    var patientId: Long? = null,
+    var patientId: Long,
 
     @field:NotNull
     @Column(name = "appointment_date")
-    var appointmentDate: LocalDate? = null,
+    var appointmentDate: LocalDate,
 
     @field:NotNull
     @Column(name = "appointment_time")
-    var appointmentTime: LocalTime? = null,
+    var appointmentTime: LocalTime,
 
     @field:NotNull
     @Enumerated(EnumType.STRING)
-    var status: AppointmentStatus? = null
+    var status: AppointmentStatus
 )
