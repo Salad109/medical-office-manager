@@ -25,6 +25,14 @@ class UserService(
         return user.toResponse()
     }
 
+    fun searchUsers(query: String, pageable: Pageable): Page<UserResponse> {
+        if (query.length < 3)
+            return Page.empty(pageable)
+
+        val searchQuery = "*$query*"
+        return userRepository.searchByName(searchQuery, pageable).map { it.toResponse() }
+    }
+
     fun createUser(request: UserCreationRequest): UserResponse {
         require(!userRepository.existsByUsername(request.username())) {
             "Username already exists"

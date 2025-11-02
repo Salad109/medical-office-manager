@@ -30,6 +30,13 @@ class UserController(
     }
 
     @PreAuthorize("hasRole('RECEPTIONIST')")
+    @GetMapping("/search")
+    fun searchUsersByLastName(@RequestParam q: String, pageable: Pageable): ResponseEntity<Page<UserResponse>> {
+        val users = userService.searchUsers(q, pageable)
+        return ResponseEntity.ok(users)
+    }
+
+    @PreAuthorize("hasRole('RECEPTIONIST')")
     @PostMapping
     fun createUser(@Valid @RequestBody request: UserCreationRequest): ResponseEntity<UserResponse> {
         val createdUser = userService.createUser(request)
