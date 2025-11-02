@@ -29,7 +29,7 @@ class AppointmentService(
     fun getAvailableSlots(date: LocalDate): List<String> {
         // Get existing appointments
         val existingAppointments: List<Appointment> = appointmentRepository.findByAppointmentDate(date)
-        val bookedTimes = existingAppointments.map { it.appointmentTime!! }.toSet()
+        val bookedTimes = existingAppointments.map { it.appointmentTime }.toSet()
 
         // Generate all possible slots
         val allSlots = mutableListOf<LocalTime>()
@@ -43,6 +43,19 @@ class AppointmentService(
         return allSlots
             .filterNot { it in bookedTimes }
             .map { it.toString() }
+    }
+
+    fun getAppointmentsByDate(date: LocalDate): List<AppointmentResponse> {
+        val appointments: List<Appointment> = appointmentRepository.findByAppointmentDate(date)
+        return appointments.map {
+            AppointmentResponse(
+                it.id,
+                it.patientId,
+                it.appointmentDate,
+                it.appointmentTime,
+                it.status
+            )
+        }
     }
 
     @Transactional
@@ -61,7 +74,8 @@ class AppointmentService(
 
         // Check slot availability
         val existingAppointments: List<Appointment> = appointmentRepository.findByAppointmentDate(request.date)
-        require(existingAppointments.none { it.appointmentTime?.equals(request.time) == true }) {
+        val bookedTimes = existingAppointments.map { it.appointmentTime }.toSet()
+        require(request.time !in bookedTimes) {
             "Time slot ${request.time} on ${request.date} is already booked"
         }
 

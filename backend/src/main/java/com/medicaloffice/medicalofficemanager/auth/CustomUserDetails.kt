@@ -9,8 +9,8 @@ import org.springframework.security.core.userdetails.UserDetails
 
 class CustomUserDetails(user: User) : UserDetails, CredentialsContainer {
     val userId: Long = user.id!!
-    val role: Role = user.role!!
-    private val usernameField: String = user.username!!
+    val role: Role = user.role
+    private val usernameField: String = user.username
     private var passwordField: String? = user.passwordHash
 
     override fun getAuthorities(): Collection<GrantedAuthority> {

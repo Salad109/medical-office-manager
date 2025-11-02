@@ -19,11 +19,21 @@ class AppointmentController(
 ) {
 
     @GetMapping("/available")
+    @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('PATIENT')")
     fun getAvailableSlots(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate
     ): ResponseEntity<List<String>> {
         val availableSlots = appointmentService.getAvailableSlots(date)
         return ResponseEntity.ok(availableSlots)
+    }
+
+    @GetMapping("/existing")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
+    fun getAppointmentsByDate(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate
+    ): ResponseEntity<List<AppointmentResponse>> {
+        val appointments = appointmentService.getAppointmentsByDate(date)
+        return ResponseEntity.ok(appointments)
     }
 
     @PreAuthorize("hasRole('RECEPTIONIST') or (hasRole('PATIENT') and #request.patientId == authentication.principal.userId)")
