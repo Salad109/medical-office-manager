@@ -6,6 +6,7 @@ import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.UserRepository
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitCreationRequest
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitResponse
+import com.medicaloffice.medicalofficemanager.visits.dto.VisitUpdateRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import kotlin.jvm.optionals.getOrNull
@@ -49,5 +50,17 @@ class VisitService(
 
         return visitRepository.findVisitResponseById(savedVisit.id!!)
             .orElseThrow { IllegalArgumentException("Visit not found with id: ${savedVisit.id}") }
+    }
+
+    @Transactional
+    fun updateVisit(visitId: Long, request: VisitUpdateRequest): VisitResponse {
+        val visit = visitRepository.findById(visitId)
+            .orElseThrow { IllegalArgumentException("Visit not found with id: $visitId") }
+
+        visit.notes = request.notes
+        val updatedVisit = visitRepository.save(visit)
+
+        return visitRepository.findVisitResponseById(updatedVisit.id!!)
+            .orElseThrow { IllegalArgumentException("Visit not found with id: ${updatedVisit.id}") }
     }
 }

@@ -1,9 +1,27 @@
 ### Variables
 @baseUrl = http://localhost:8080/api
-@token = eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjIsInJvbGUiOiJET0NUT1IiLCJzdWIiOiJkb2N0b3IxIiwiaWF0IjoxNzYxOTM3OTQ4LCJleHAiOjE3NjE5NDE1NDh9.pFSBGrZDZKCsvG7w4bbYvCpRxNq5walZvE9RJhEbWpOQptPRLVhspzshYZg18F2swo2i5VSJiETlayQLqNrYwQ
+@receptionistToken =
+@patientToken =
+@doctorToken =
 
-### Register a new patient
-POST {{baseUrl}}/auth/register
+### Note: First receptionist must be created manually in database
+
+### Login as receptionist
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "receptionist1",
+  "password": "password123"
+}
+
+# Copy token from response and update @receptionistToken above
+
+### ===== USER MANAGEMENT (Receptionist only) =====
+
+### Create patient account
+POST {{baseUrl}}/users
+Authorization: Bearer {{receptionistToken}}
 Content-Type: application/json
 
 {
@@ -16,8 +34,9 @@ Content-Type: application/json
   "role": "PATIENT"
 }
 
-### Register a new doctor
-POST {{baseUrl}}/auth/register
+### Create doctor account
+POST {{baseUrl}}/users
+Authorization: Bearer {{receptionistToken}}
 Content-Type: application/json
 
 {
@@ -30,12 +49,13 @@ Content-Type: application/json
   "role": "DOCTOR"
 }
 
-### Register a new receptionist
-POST {{baseUrl}}/auth/register
+### Create another receptionist account
+POST {{baseUrl}}/users
+Authorization: Bearer {{receptionistToken}}
 Content-Type: application/json
 
 {
-  "username": "receptionist1",
+  "username": "receptionist2",
   "password": "password123",
   "firstName": "Grzegorz",
   "lastName": "Brzęczyszczykiewicz",
@@ -43,6 +63,31 @@ Content-Type: application/json
   "pesel": "55512345678",
   "role": "RECEPTIONIST"
 }
+
+### Get all users (paginated)
+GET {{baseUrl}}/users?page=0&size=10
+Authorization: Bearer {{receptionistToken}}
+
+### Get user by ID
+GET {{baseUrl}}/users/1
+Authorization: Bearer {{receptionistToken}}
+
+### Update user
+PUT {{baseUrl}}/users/1
+Authorization: Bearer {{receptionistToken}}
+Content-Type: application/json
+
+{
+  "username": "patient1",
+  "password": "newpassword123",
+  "firstName": "Jan",
+  "lastName": "Kowalski-Updated",
+  "phoneNumber": "123456789",
+  "pesel": "12345678901",
+  "role": "PATIENT"
+}
+
+### ===== AUTHENTICATION =====
 
 ### Login as patient
 POST {{baseUrl}}/auth/login
@@ -53,6 +98,8 @@ Content-Type: application/json
   "password": "password123"
 }
 
+# Copy token and update @patientToken
+
 ### Login as doctor
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
@@ -62,32 +109,16 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### Login as receptionist
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
+# Copy token and update @doctorToken
 
-{
-  "username": "receptionist1",
-  "password": "password123"
-}
+### ===== APPOINTMENTS =====
 
-### View available slots (public, no auth)
+### View available slots (public, no auth required)
 GET {{baseUrl}}/appointments/available?date=2025-11-01
 
-### Login as patient and book appointment
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{
-  "username": "patient1",
-  "password": "password123"
-}
-
-# Copy token from response, update @token variable at top
-
-### Book appointment as patient (for self)
+### Book appointment as patient (for self only)
 POST {{baseUrl}}/appointments
-Authorization: Bearer {{token}}
+Authorization: Bearer {{patientToken}}
 Content-Type: application/json
 
 {
@@ -96,9 +127,9 @@ Content-Type: application/json
   "time": "09:00"
 }
 
-### Patient tries to book for another patient (should fail)
+### Patient tries to book for another patient (should fail with 403)
 POST {{baseUrl}}/appointments
-Authorization: Bearer {{token}}
+Authorization: Bearer {{patientToken}}
 Content-Type: application/json
 
 {
@@ -107,23 +138,9 @@ Content-Type: application/json
   "time": "09:30"
 }
 
-### View available slots again (should see 09:00 is now gone)
-GET {{baseUrl}}/appointments/available?date=2025-11-01
-
-### Login as receptionist
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
-
-{
-  "username": "receptionist1",
-  "password": "password123"
-}
-
-# Update @token with receptionist token
-
-### Receptionist books appointment for patient
+### Receptionist books appointment for any patient
 POST {{baseUrl}}/appointments
-Authorization: Bearer {{token}}
+Authorization: Bearer {{receptionistToken}}
 Content-Type: application/json
 
 {
@@ -132,24 +149,17 @@ Content-Type: application/json
   "time": "10:00"
 }
 
-### Receptionist cancels any appointment
+### Patient cancels own appointment
 DELETE {{baseUrl}}/appointments/1
-Authorization: Bearer {{token}}
+Authorization: Bearer {{patientToken}}
 
-### Login as doctor
-POST {{baseUrl}}/auth/login
-Content-Type: application/json
+### Receptionist cancels any appointment
+DELETE {{baseUrl}}/appointments/2
+Authorization: Bearer {{receptionistToken}}
 
-{
-  "username": "doctor1",
-  "password": "password123"
-}
-
-# Update @token with doctor token
-
-### Doctor tries to book appointment (should fail)
+### Doctor tries to book appointment (should fail with 403)
 POST {{baseUrl}}/appointments
-Authorization: Bearer {{token}}
+Authorization: Bearer {{doctorToken}}
 Content-Type: application/json
 
 {
@@ -158,7 +168,65 @@ Content-Type: application/json
   "time": "11:00"
 }
 
-### Patient cancels own appointment
-# Switch back to patient token, then:
-DELETE {{baseUrl}}/appointments/2
-Authorization: Bearer {{token}}
+### ===== VISITS (Doctor only) =====
+
+### Get patient visit history
+GET {{baseUrl}}/visits/patient/1
+Authorization: Bearer {{doctorToken}}
+
+### Mark appointment as completed (create visit)
+POST {{baseUrl}}/visits
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "appointmentId": 3,
+  "notes": "Patient notes here."
+}
+
+### Update visit notes
+PUT {{baseUrl}}/visits/1
+Authorization: Bearer {{doctorToken}}
+Content-Type: application/json
+
+{
+  "notes": "Updated patient notes here."
+}
+
+### ===== ERROR CASES =====
+
+### Patient tries to access all users (should fail with 403)
+GET {{baseUrl}}/users
+Authorization: Bearer {{patientToken}}
+
+### Patient tries to create user (should fail with 403)
+POST {{baseUrl}}/users
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "username": "hacker",
+  "password": "password123",
+  "firstName": "Bad",
+  "lastName": "Actor",
+  "phoneNumber": "111111111",
+  "role": "RECEPTIONIST"
+}
+
+### Doctor tries to cancel appointment (should fail with 403)
+DELETE {{baseUrl}}/appointments/3
+Authorization: Bearer {{doctorToken}}
+
+### Patient tries to view visit history (should fail with 403)
+GET {{baseUrl}}/visits/patient/1
+Authorization: Bearer {{patientToken}}
+
+### Patient tries to mark visit as completed (should fail with 403)
+POST {{baseUrl}}/visits
+Authorization: Bearer {{patientToken}}
+Content-Type: application/json
+
+{
+  "appointmentId": 4,
+  "notes": "Fake notes"
+}
