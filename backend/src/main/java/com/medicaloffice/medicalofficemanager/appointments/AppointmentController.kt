@@ -7,6 +7,7 @@ import jakarta.validation.Valid
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -25,16 +26,10 @@ class AppointmentController(
         return ResponseEntity.ok(availableSlots)
     }
 
+    @PreAuthorize("hasRole('RECEPTIONIST') or (hasRole('PATIENT') and #request.patientId == authentication.principal.userId)")
     @PostMapping
-    fun bookAppointment(
-        @Valid @RequestBody request: BookAppointmentRequest,
-        @AuthenticationPrincipal userDetails: CustomUserDetails
-    ): ResponseEntity<AppointmentResponse> {
-        val response = appointmentService.bookAppointment(
-            request = request,
-            currentUserId = userDetails.userId,
-            currentUserRole = userDetails.role
-        )
+    fun bookAppointment(@Valid @RequestBody request: BookAppointmentRequest): ResponseEntity<AppointmentResponse> {
+        val response = appointmentService.bookAppointment(request = request)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
     }
 

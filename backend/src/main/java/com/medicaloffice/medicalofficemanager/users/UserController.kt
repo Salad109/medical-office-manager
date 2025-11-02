@@ -22,7 +22,7 @@ class UserController(
         return ResponseEntity.ok(users)
     }
 
-    @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('DOCTOR') or (#id == authentication.principal.id)")
+    @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('DOCTOR') or (#id == authentication.principal.userId)")
     @GetMapping("/{id}")
     fun getUserById(@PathVariable id: Long): ResponseEntity<UserResponse> {
         val user = userService.getUserById(id)

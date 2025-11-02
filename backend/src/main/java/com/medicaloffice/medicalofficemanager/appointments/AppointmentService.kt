@@ -5,11 +5,13 @@ import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRe
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.UserRepository
 import org.slf4j.LoggerFactory
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.jvm.optionals.getOrNull
 
 @Service
 class AppointmentService(
@@ -44,27 +46,9 @@ class AppointmentService(
     }
 
     @Transactional
-    fun bookAppointment(
-        request: BookAppointmentRequest,
-        currentUserId: Long,
-        currentUserRole: Role
-    ): AppointmentResponse {
-        // Validate user role and permissions
-        when (currentUserRole) {
-            Role.DOCTOR -> throw IllegalArgumentException("Doctors cannot book appointments")
-            Role.PATIENT -> {
-                require(request.patientId == currentUserId) {
-                    "Patients can only book appointments for themselves"
-                }
-            }
-
-            Role.RECEPTIONIST -> {
-                val patient = userRepository.findById(request.patientId)
-                    .orElseThrow { IllegalArgumentException("Patient not found with ID: ${request.patientId}") }
-                require(patient.role == Role.PATIENT) {
-                    "User with ID ${request.patientId} is not a patient"
-                }
-            }
+    fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
+        require((userRepository.findById(request.patientId).getOrNull()?.role == Role.PATIENT)) {
+            "User with ID ${request.patientId} does not exist or is not a patient"
         }
 
         require(!request.date.isBefore(LocalDate.now())) {
@@ -118,7 +102,7 @@ class AppointmentService(
                 // Receptionists can cancel any appointment
             }
 
-            Role.DOCTOR -> throw IllegalArgumentException("Doctors cannot cancel appointments")
+            Role.DOCTOR -> throw AccessDeniedException("Doctors cannot cancel appointments")
         }
 
         appointmentRepository.delete(appointment)
