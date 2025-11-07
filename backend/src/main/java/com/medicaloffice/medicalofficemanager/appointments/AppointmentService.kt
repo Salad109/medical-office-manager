@@ -43,11 +43,11 @@ class AppointmentService(
         return allSlots
             .filterNot { it in bookedTimes }
             .map { it.toString() }
+            .also { log.debug("Available slots on {}: {}", date, it) }
     }
 
     fun getAppointmentsByDate(date: LocalDate): List<AppointmentResponse> {
-        val appointments: List<Appointment> = appointmentRepository.findByAppointmentDate(date)
-        return appointments.map {
+        return appointmentRepository.findByAppointmentDate(date).map {
             AppointmentResponse(
                 it.id,
                 it.patientId,
@@ -55,7 +55,7 @@ class AppointmentService(
                 it.appointmentTime,
                 it.status
             )
-        }
+        }.also { log.debug("Fetched {} appointments for date {}", it.size, date) }
     }
 
     @Transactional
