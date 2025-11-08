@@ -2,20 +2,16 @@ package com.medicaloffice.medicalofficemanager.visits
 
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentRepository
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentStatus
-import com.medicaloffice.medicalofficemanager.users.Role
-import com.medicaloffice.medicalofficemanager.users.UserRepository
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitCreationRequest
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitResponse
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitUpdateRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import kotlin.jvm.optionals.getOrNull
 
 @Service
 class VisitService(
     private val visitRepository: VisitRepository,
     private val appointmentRepository: AppointmentRepository,
-    private val userRepository: UserRepository
 ) {
 
     fun getVisitsByPatient(patientId: Long): List<VisitResponse> {
@@ -28,15 +24,11 @@ class VisitService(
             .orElseThrow { IllegalArgumentException("Appointment not found with id: ${request.appointmentId}") }
 
         require(appointment.status == AppointmentStatus.SCHEDULED || appointment.status == AppointmentStatus.NO_SHOW) {
-            "Only scheduled appointments can be marked as completed."
+            "Only scheduled or no-show appointments can be marked as completed."
         }
 
         require(!visitRepository.existsByAppointmentId(request.appointmentId)) {
             "Visit already exists for appointment ${request.appointmentId}"
-        }
-
-        require(userRepository.findById(doctorId).getOrNull()?.role == Role.DOCTOR) {
-            "Only doctors can mark visits as completed."
         }
 
         val visit = Visit(
