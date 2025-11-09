@@ -1,6 +1,7 @@
 package com.medicaloffice.medicalofficemanager.appointments
 
 import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentResponse
+import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
 import com.medicaloffice.medicalofficemanager.auth.CustomUserDetails
 import jakarta.validation.Valid
@@ -31,8 +32,8 @@ class AppointmentController(
     @PreAuthorize("hasRole('RECEPTIONIST')")
     fun getAppointmentsByDate(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate
-    ): ResponseEntity<List<AppointmentResponse>> {
-        val appointments = appointmentService.getAppointmentsByDate(date)
+    ): ResponseEntity<List<AppointmentWithDetailsResponse>> {
+        val appointments = appointmentService.getAppointmentsWithDetailsByDate(date)
         return ResponseEntity.ok(appointments)
     }
 

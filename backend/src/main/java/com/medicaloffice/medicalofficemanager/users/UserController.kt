@@ -1,6 +1,7 @@
 package com.medicaloffice.medicalofficemanager.users
 
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
+import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
@@ -47,9 +48,9 @@ class UserController(
     @PutMapping("/{id}")
     fun updateUser(
         @PathVariable id: Long,
-        @Valid @RequestBody user: UserCreationRequest
+        @Valid @RequestBody request: UserUpdateRequest
     ): ResponseEntity<UserResponse> {
-        val updatedUser = userService.updateUser(id, user)
+        val updatedUser = userService.updateUser(id, request)
         return ResponseEntity.ok(updatedUser)
     }
 }

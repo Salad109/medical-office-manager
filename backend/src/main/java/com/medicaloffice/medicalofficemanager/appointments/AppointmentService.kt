@@ -1,6 +1,7 @@
 package com.medicaloffice.medicalofficemanager.appointments
 
 import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentResponse
+import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
 import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidRoleException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
@@ -61,6 +62,11 @@ class AppointmentService(
         }.also { log.debug("Fetched {} appointments for date {}", it.size, date) }
     }
 
+    fun getAppointmentsWithDetailsByDate(date: LocalDate): List<AppointmentWithDetailsResponse> {
+        return appointmentRepository.findAppointmentsWithDetailsByDate(date)
+            .also { log.debug("Fetched {} appointments with details for date {}", it.size, date) }
+    }
+
     @Transactional
     fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
         userRepository.findById(request.patientId)
@@ -69,7 +75,7 @@ class AppointmentService(
             ?: throw InvalidRoleException("User with ID ${request.patientId} is not a patient")
 
 
-        if (request.date.isBefore(LocalDate.now())) {
+        if (request.date.isBefore(LocalDate.now()) && request.time.isBefore(LocalTime.now())) {
             throw InvalidTimeSlotException("Cannot book appointment in the past")
         }
 

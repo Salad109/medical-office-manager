@@ -3,6 +3,7 @@ package com.medicaloffice.medicalofficemanager.users
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
+import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
@@ -65,23 +66,29 @@ class UserService(
         return savedUser.toResponse()
     }
 
-    fun updateUser(id: Long, user: UserCreationRequest): UserResponse {
+    fun updateUser(id: Long, request: UserUpdateRequest): UserResponse {
         val existingUser =
             userRepository.findById(id).orElseThrow { ResourceNotFoundException("User with ID $id not found") }
 
-        existingUser.firstName = user.firstName()
-        existingUser.lastName = user.lastName()
-        existingUser.phoneNumber = user.phoneNumber()
-        existingUser.passwordHash = passwordEncoder.encode(user.password())
-        if (user.role() == Role.PATIENT) {
-            if (user.pesel().isNullOrBlank()) {
+        existingUser.username = request.username()
+        existingUser.firstName = request.firstName()
+        existingUser.lastName = request.lastName()
+        existingUser.phoneNumber = request.phoneNumber()
+
+        // Only update password if a new one is provided
+        if (!request.password().isNullOrBlank()) {
+            existingUser.passwordHash = passwordEncoder.encode(request.password())
+        }
+
+        if (request.role() == Role.PATIENT) {
+            if (request.pesel().isNullOrBlank()) {
                 throw ValidationException("PESEL is required for patients")
             }
-            existingUser.pesel = user.pesel()
+            existingUser.pesel = request.pesel()
         } else {
             existingUser.pesel = null
         }
-        existingUser.role = user.role()
+        existingUser.role = request.role()
 
         val updatedUser = userRepository.save(existingUser)
 
