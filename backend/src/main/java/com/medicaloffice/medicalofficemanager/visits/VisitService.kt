@@ -45,7 +45,7 @@ class VisitService(
     }
 
     @Transactional
-    fun updateVisit(visitId: Long, request: VisitUpdateRequest): VisitResponse {
+    fun updateVisitNotes(visitId: Long, request: VisitUpdateRequest): VisitResponse {
         val visit = visitRepository.findById(visitId)
             .orElseThrow { IllegalArgumentException("Visit not found with id: $visitId") }
 

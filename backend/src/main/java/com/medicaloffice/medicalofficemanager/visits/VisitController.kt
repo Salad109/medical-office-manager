@@ -40,7 +40,7 @@ class VisitController(
         @PathVariable id: Long,
         @Valid @RequestBody request: VisitUpdateRequest
     ): ResponseEntity<VisitResponse> {
-        val updatedVisit = visitService.updateVisit(id, request)
+        val updatedVisit = visitService.updateVisitNotes(id, request)
         return ResponseEntity.ok(updatedVisit)
     }
 }

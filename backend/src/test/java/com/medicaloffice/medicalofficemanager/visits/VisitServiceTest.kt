@@ -7,6 +7,7 @@ import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.User
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitCreationRequest
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitResponse
+import com.medicaloffice.medicalofficemanager.visits.dto.VisitUpdateRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -73,6 +74,39 @@ class VisitServiceTest {
             appointmentTime = LocalTime.of(9, 0),
             status = AppointmentStatus.SCHEDULED
         )
+    }
+
+    @Nested
+    inner class GetVisitsByPatientTests {
+
+        @Test
+        fun `should return visits for given patient`() {
+            // Given
+            val visitResponse = VisitResponse(
+                1L,
+                "Visit notes.",
+                LocalDateTime.now(),
+                testAppointment.id!!,
+                testAppointment.appointmentDate,
+                testAppointment.appointmentTime,
+                doctorUser.id!!,
+                doctorUser.firstName,
+                doctorUser.lastName,
+                patientUser.id!!,
+                patientUser.firstName,
+                patientUser.lastName
+            )
+            whenever(visitRepository.findVisitResponseByPatientId(patientUser.id!!))
+                .thenReturn(listOf(visitResponse))
+
+            // When
+            val visits = visitService.getVisitsByPatient(patientUser.id!!)
+
+            // Then
+            assertThat(visits).hasSize(1)
+            assertThat(visits[0].id).isEqualTo(1L)
+            assertThat(visits[0].notes).isEqualTo("Visit notes.")
+        }
     }
 
     @Nested
@@ -185,6 +219,74 @@ class VisitServiceTest {
             assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
                 .isInstanceOf(IllegalArgumentException::class.java)
                 .hasMessageContaining("Visit already exists")
+        }
+    }
+
+    @Nested
+    inner class UpdateVisitNotesTests {
+
+        @Test
+        fun `should update visit notes`() {
+            // Given
+            val existingVisit = Visit(
+                id = 1L,
+                appointmentId = testAppointment.id!!,
+                notes = "Old notes.",
+                completedByDoctorId = doctorUser.id!!
+            )
+            val visitUpdateRequest = VisitUpdateRequest(
+                "Updated notes."
+            )
+            whenever(visitRepository.findById(existingVisit.id!!))
+                .thenReturn(Optional.of(existingVisit))
+            whenever(visitRepository.save(any())).thenAnswer { invocation ->
+                invocation.arguments[0]
+            }
+            whenever(visitRepository.findVisitResponseById(existingVisit.id!!))
+                .thenReturn(
+                    Optional.of(
+                        VisitResponse(
+                            existingVisit.id!!,
+                            "Updated notes.",
+                            LocalDateTime.now(),
+                            testAppointment.id!!,
+                            testAppointment.appointmentDate,
+                            testAppointment.appointmentTime,
+                            doctorUser.id!!,
+                            doctorUser.firstName,
+                            doctorUser.lastName,
+                            patientUser.id!!,
+                            patientUser.firstName,
+                            patientUser.lastName
+                        )
+                    )
+                )
+
+            // When
+            val updatedVisitResponse = visitService.updateVisitNotes(existingVisit.id!!, visitUpdateRequest)
+
+            // Then
+            verify(visitRepository).save(
+                check {
+                    assertThat(it.notes).isEqualTo("Updated notes.")
+                }
+            )
+            assertThat(updatedVisitResponse.notes).isEqualTo("Updated notes.")
+        }
+
+        @Test
+        fun `should throw exception when visit to update not found`() {
+            // Given
+            val visitUpdateRequest = VisitUpdateRequest(
+                "Updated notes."
+            )
+            whenever(visitRepository.findById(999L))
+                .thenReturn(Optional.empty())
+
+            // Then
+            assertThatThrownBy { visitService.updateVisitNotes(999L, visitUpdateRequest) }
+                .isInstanceOf(IllegalArgumentException::class.java)
+                .hasMessageContaining("Visit not found")
         }
     }
 }
