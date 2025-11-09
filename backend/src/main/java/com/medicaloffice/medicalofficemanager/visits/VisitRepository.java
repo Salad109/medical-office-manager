@@ -20,7 +20,7 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
             "JOIN User p ON a.patientId = p.id " +
             "WHERE a.patientId = :patientId " +
             "ORDER BY a.appointmentDate DESC, a.appointmentTime DESC")
-    List<VisitResponse> findVisitResponseByPatientId(@Param("patientId") Long patientId);
+    List<VisitResponse> findVisitResponsesByPatientId(@Param("patientId") Long patientId);
 
     @Query("SELECT new com.medicaloffice.medicalofficemanager.visits.dto.VisitResponse(" +
             "v.id, v.notes, v.completedAt, " +

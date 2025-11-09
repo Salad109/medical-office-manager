@@ -2,6 +2,8 @@ package com.medicaloffice.medicalofficemanager.visits
 
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentRepository
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentStatus
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitCreationRequest
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitResponse
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitUpdateRequest
@@ -15,20 +17,20 @@ class VisitService(
 ) {
 
     fun getVisitsByPatient(patientId: Long): List<VisitResponse> {
-        return visitRepository.findVisitResponseByPatientId(patientId)
+        return visitRepository.findVisitResponsesByPatientId(patientId)
     }
 
     @Transactional
     fun markVisitAsCompleted(request: VisitCreationRequest, doctorId: Long): VisitResponse {
         val appointment = appointmentRepository.findById(request.appointmentId)
-            .orElseThrow { IllegalArgumentException("Appointment not found with id: ${request.appointmentId}") }
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: ${request.appointmentId}") }
 
-        require(appointment.status == AppointmentStatus.SCHEDULED || appointment.status == AppointmentStatus.NO_SHOW) {
-            "Only scheduled or no-show appointments can be marked as completed."
+        check(appointment.status != AppointmentStatus.COMPLETED) {
+            "Only scheduled or no-show appointments can be marked as completed"
         }
 
-        require(!visitRepository.existsByAppointmentId(request.appointmentId)) {
-            "Visit already exists for appointment ${request.appointmentId}"
+        if (visitRepository.existsByAppointmentId(request.appointmentId)) {
+            throw ResourceAlreadyExistsException("Visit already exists for appointment ${request.appointmentId}")
         }
 
         val visit = Visit(
@@ -41,18 +43,18 @@ class VisitService(
         val savedVisit = visitRepository.save(visit)
 
         return visitRepository.findVisitResponseById(savedVisit.id!!)
-            .orElseThrow { IllegalArgumentException("Visit not found with id: ${savedVisit.id}") }
+            .orElseThrow { ResourceNotFoundException("Visit not found with ID: ${savedVisit.id}") }
     }
 
     @Transactional
     fun updateVisitNotes(visitId: Long, request: VisitUpdateRequest): VisitResponse {
         val visit = visitRepository.findById(visitId)
-            .orElseThrow { IllegalArgumentException("Visit not found with id: $visitId") }
+            .orElseThrow { ResourceNotFoundException("Visit not found with ID: $visitId") }
 
         visit.notes = request.notes
         val updatedVisit = visitRepository.save(visit)
 
         return visitRepository.findVisitResponseById(updatedVisit.id!!)
-            .orElseThrow { IllegalArgumentException("Visit not found with id: ${updatedVisit.id}") }
+            .orElseThrow { ResourceNotFoundException("Visit not found with ID: ${updatedVisit.id}") }
     }
 }

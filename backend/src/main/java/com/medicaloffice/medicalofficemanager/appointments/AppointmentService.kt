@@ -2,7 +2,10 @@ package com.medicaloffice.medicalofficemanager.appointments
 
 import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
-import com.medicaloffice.medicalofficemanager.exception.exceptions.*
+import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidRoleException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.UserRepository
 import org.slf4j.LoggerFactory
@@ -61,7 +64,7 @@ class AppointmentService(
     @Transactional
     fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
         userRepository.findById(request.patientId)
-            .orElseThrow { UserNotFoundException("Patient with ID ${request.patientId} not found") }
+            .orElseThrow { ResourceNotFoundException("Patient with ID ${request.patientId} not found") }
             .takeIf { it.role == Role.PATIENT }
             ?: throw InvalidRoleException("User with ID ${request.patientId} is not a patient")
 
@@ -80,7 +83,7 @@ class AppointmentService(
         val existingAppointments: List<Appointment> = appointmentRepository.findByAppointmentDate(request.date)
         val bookedTimes = existingAppointments.map { it.appointmentTime }.toSet()
         if (request.time in bookedTimes) {
-            throw TimeSlotAlreadyBookedException(
+            throw ResourceAlreadyExistsException(
                 "Time slot ${request.time} on ${request.date} is already booked"
             )
         }
@@ -108,7 +111,7 @@ class AppointmentService(
     @Transactional
     fun cancelAppointment(appointmentId: Long, currentUserId: Long, currentUserRole: Role) {
         val appointment = appointmentRepository.findById(appointmentId)
-            .orElseThrow { AppointmentNotFoundException("Appointment not found with ID: $appointmentId") }
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: $appointmentId") }
 
         // Check permissions
         when (currentUserRole) {

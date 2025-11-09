@@ -3,6 +3,8 @@ package com.medicaloffice.medicalofficemanager.visits
 import com.medicaloffice.medicalofficemanager.appointments.Appointment
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentRepository
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentStatus
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.User
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitCreationRequest
@@ -96,7 +98,7 @@ class VisitServiceTest {
                 patientUser.firstName,
                 patientUser.lastName
             )
-            whenever(visitRepository.findVisitResponseByPatientId(patientUser.id!!))
+            whenever(visitRepository.findVisitResponsesByPatientId(patientUser.id!!))
                 .thenReturn(listOf(visitResponse))
 
             // When
@@ -182,7 +184,7 @@ class VisitServiceTest {
 
             // Then
             assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(ResourceNotFoundException::class.java)
                 .hasMessageContaining("Appointment not found")
         }
 
@@ -199,7 +201,7 @@ class VisitServiceTest {
 
             // Then
             assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(IllegalStateException::class.java)
                 .hasMessageContaining("Only scheduled or no-show appointments can be marked as completed")
         }
 
@@ -217,7 +219,7 @@ class VisitServiceTest {
 
             // Then
             assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(ResourceAlreadyExistsException::class.java)
                 .hasMessageContaining("Visit already exists")
         }
     }
@@ -285,7 +287,7 @@ class VisitServiceTest {
 
             // Then
             assertThatThrownBy { visitService.updateVisitNotes(999L, visitUpdateRequest) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(ResourceNotFoundException::class.java)
                 .hasMessageContaining("Visit not found")
         }
     }

@@ -1,7 +1,10 @@
 package com.medicaloffice.medicalofficemanager.users
 
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
+import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -21,7 +24,7 @@ class UserService(
     }
 
     fun getUserById(id: Long): UserResponse {
-        val user = userRepository.findById(id).orElseThrow { NoSuchElementException("User with id $id not found") }
+        val user = userRepository.findById(id).orElseThrow { ResourceNotFoundException("User with id $id not found") }
         return user.toResponse()
     }
 
@@ -34,16 +37,16 @@ class UserService(
     }
 
     fun createUser(request: UserCreationRequest): UserResponse {
-        require(!userRepository.existsByUsername(request.username())) {
-            "Username already exists"
+        if (userRepository.existsByUsername(request.username())) {
+            throw ResourceAlreadyExistsException("Username already exists")
         }
 
-        require(!userRepository.existsByPhoneNumber(request.phoneNumber())) {
-            "Phone number already exists"
+        if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
+            throw ResourceAlreadyExistsException("Phone number already exists")
         }
 
-        require(request.role() != Role.PATIENT || !request.pesel().isNullOrBlank()) {
-            "PESEL is required for patients"
+        if (request.role() == Role.PATIENT && request.pesel().isNullOrBlank()) {
+            throw ValidationException("PESEL is required for patients")
         }
 
         val user = User(
@@ -64,15 +67,15 @@ class UserService(
 
     fun updateUser(id: Long, user: UserCreationRequest): UserResponse {
         val existingUser =
-            userRepository.findById(id).orElseThrow { NoSuchElementException("User with id $id not found") }
+            userRepository.findById(id).orElseThrow { ResourceNotFoundException("User with ID $id not found") }
 
         existingUser.firstName = user.firstName()
         existingUser.lastName = user.lastName()
         existingUser.phoneNumber = user.phoneNumber()
         existingUser.passwordHash = passwordEncoder.encode(user.password())
         if (user.role() == Role.PATIENT) {
-            require(!user.pesel().isNullOrBlank()) {
-                "PESEL is required for patients"
+            if (user.pesel().isNullOrBlank()) {
+                throw ValidationException("PESEL is required for patients")
             }
             existingUser.pesel = user.pesel()
         } else {

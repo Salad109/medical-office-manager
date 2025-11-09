@@ -1,7 +1,10 @@
 package com.medicaloffice.medicalofficemanager.appointments
 
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
-import com.medicaloffice.medicalofficemanager.exception.exceptions.*
+import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidRoleException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.User
 import com.medicaloffice.medicalofficemanager.users.UserRepository
@@ -228,7 +231,7 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(UserNotFoundException::class.java)
+                .isInstanceOf(ResourceNotFoundException::class.java)
                 .hasMessageContaining("Patient with ID 999 not found")
             verify(appointmentRepository, never()).save(any())
         }
@@ -282,7 +285,7 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(TimeSlotAlreadyBookedException::class.java)
+                .isInstanceOf(ResourceAlreadyExistsException::class.java)
                 .hasMessageContaining("already booked")
             verify(appointmentRepository, never()).save(any())
         }
@@ -354,7 +357,7 @@ class AppointmentServiceTest {
             assertThatThrownBy {
                 appointmentService.cancelAppointment(nonExistentId, patientUser.id!!, Role.PATIENT)
             }
-                .isInstanceOf(AppointmentNotFoundException::class.java)
+                .isInstanceOf(ResourceNotFoundException::class.java)
                 .hasMessageContaining("Appointment not found")
             verify(appointmentRepository, never()).delete(any())
         }
