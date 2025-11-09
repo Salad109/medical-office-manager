@@ -2,6 +2,7 @@ package com.medicaloffice.medicalofficemanager.appointments
 
 import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
+import com.medicaloffice.medicalofficemanager.exception.exceptions.*
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.UserRepository
 import org.slf4j.LoggerFactory
@@ -11,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
-import kotlin.jvm.optionals.getOrNull
 
 @Service
 class AppointmentService(
@@ -60,23 +60,29 @@ class AppointmentService(
 
     @Transactional
     fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
-        require((userRepository.findById(request.patientId).getOrNull()?.role == Role.PATIENT)) {
-            "User with ID ${request.patientId} does not exist or is not a patient"
+        userRepository.findById(request.patientId)
+            .orElseThrow { UserNotFoundException("Patient with ID ${request.patientId} not found") }
+            .takeIf { it.role == Role.PATIENT }
+            ?: throw InvalidRoleException("User with ID ${request.patientId} is not a patient")
+
+
+        if (request.date.isBefore(LocalDate.now())) {
+            throw InvalidTimeSlotException("Cannot book appointment in the past")
         }
 
-        require(!request.date.isBefore(LocalDate.now())) {
-            "Cannot book appointment in the past"
-        }
-
-        require(request.isValidTimeSlot()) {
-            "Invalid time slot. Must be ${SLOT_DURATION_MINUTES}-minute interval between $OFFICE_START and $OFFICE_END"
+        if (!request.isValidTimeSlot()) {
+            throw InvalidTimeSlotException(
+                "Invalid time slot. Must be ${SLOT_DURATION_MINUTES}-minute interval between $OFFICE_START and $OFFICE_END"
+            )
         }
 
         // Check slot availability
         val existingAppointments: List<Appointment> = appointmentRepository.findByAppointmentDate(request.date)
         val bookedTimes = existingAppointments.map { it.appointmentTime }.toSet()
-        require(request.time !in bookedTimes) {
-            "Time slot ${request.time} on ${request.date} is already booked"
+        if (request.time in bookedTimes) {
+            throw TimeSlotAlreadyBookedException(
+                "Time slot ${request.time} on ${request.date} is already booked"
+            )
         }
 
         // Create appointment
@@ -102,21 +108,21 @@ class AppointmentService(
     @Transactional
     fun cancelAppointment(appointmentId: Long, currentUserId: Long, currentUserRole: Role) {
         val appointment = appointmentRepository.findById(appointmentId)
-            .orElseThrow { IllegalArgumentException("Appointment not found with ID: $appointmentId") }
+            .orElseThrow { AppointmentNotFoundException("Appointment not found with ID: $appointmentId") }
 
         // Check permissions
         when (currentUserRole) {
-            Role.PATIENT -> {
-                require(appointment.patientId == currentUserId) {
-                    "Patients can only cancel their own appointments"
-                }
-            }
-
             Role.RECEPTIONIST -> {
                 // Receptionists can cancel any appointment
             }
 
             Role.DOCTOR -> throw AccessDeniedException("Doctors cannot cancel appointments")
+
+            Role.PATIENT -> {
+                if (appointment.patientId != currentUserId) {
+                    throw AccessDeniedException("Patients can only cancel their own appointments")
+                }
+            }
         }
 
         appointmentRepository.delete(appointment)

@@ -1,6 +1,7 @@
 package com.medicaloffice.medicalofficemanager.appointments
 
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
+import com.medicaloffice.medicalofficemanager.exception.exceptions.*
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.User
 import com.medicaloffice.medicalofficemanager.users.UserRepository
@@ -212,8 +213,8 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessageContaining("does not exist or is not a patient")
+                .isInstanceOf(InvalidRoleException::class.java)
+                .hasMessageContaining("is not a patient")
             verify(appointmentRepository, never()).save(any()) // make sure save is never called
         }
 
@@ -227,8 +228,8 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(IllegalArgumentException::class.java)
-                .hasMessageContaining("does not exist or is not a patient")
+                .isInstanceOf(UserNotFoundException::class.java)
+                .hasMessageContaining("Patient with ID 999 not found")
             verify(appointmentRepository, never()).save(any())
         }
 
@@ -242,7 +243,7 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(InvalidTimeSlotException::class.java)
                 .hasMessageContaining("Cannot book appointment in the past")
             verify(appointmentRepository, never()).save(any())
         }
@@ -263,7 +264,7 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(InvalidTimeSlotException::class.java)
                 .hasMessageContaining("Invalid time slot")
             verify(appointmentRepository, never()).save(any())
         }
@@ -281,7 +282,7 @@ class AppointmentServiceTest {
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(TimeSlotAlreadyBookedException::class.java)
                 .hasMessageContaining("already booked")
             verify(appointmentRepository, never()).save(any())
         }
@@ -312,7 +313,7 @@ class AppointmentServiceTest {
             assertThatThrownBy {
                 appointmentService.cancelAppointment(testAppointment.id!!, differentPatientId, Role.PATIENT)
             }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(AccessDeniedException::class.java)
                 .hasMessageContaining("Patients can only cancel their own appointments")
             verify(appointmentRepository, never()).delete(any())
         }
@@ -353,7 +354,7 @@ class AppointmentServiceTest {
             assertThatThrownBy {
                 appointmentService.cancelAppointment(nonExistentId, patientUser.id!!, Role.PATIENT)
             }
-                .isInstanceOf(IllegalArgumentException::class.java)
+                .isInstanceOf(AppointmentNotFoundException::class.java)
                 .hasMessageContaining("Appointment not found")
             verify(appointmentRepository, never()).delete(any())
         }
