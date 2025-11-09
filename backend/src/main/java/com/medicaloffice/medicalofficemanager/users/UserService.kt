@@ -2,9 +2,11 @@ package com.medicaloffice.medicalofficemanager.users
 
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
+import com.medicaloffice.medicalofficemanager.users.dto.PatientWithVisitsResponse
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
-import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
+import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
+import com.medicaloffice.medicalofficemanager.visits.VisitRepository
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -14,7 +16,9 @@ import org.springframework.stereotype.Service
 
 @Service
 class UserService(
-    private val userRepository: UserRepository, private val passwordEncoder: PasswordEncoder
+    private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder,
+    private val visitRepository: VisitRepository
 ) {
     private val log = LoggerFactory.getLogger(UserService::class.java)
 
@@ -94,6 +98,15 @@ class UserService(
 
         log.info("User with id {} updated successfully", id)
         return updatedUser.toResponse()
+    }
+
+    fun getPatientWithVisits(patientId: Long): PatientWithVisitsResponse {
+        val user = userRepository.findById(patientId)
+            .orElseThrow { ResourceNotFoundException("User with id $patientId not found") }
+
+        val visits = visitRepository.findVisitResponsesByPatientId(patientId)
+
+        return PatientWithVisitsResponse(user.toResponse(), visits)
     }
 
     fun User.toResponse() = UserResponse(

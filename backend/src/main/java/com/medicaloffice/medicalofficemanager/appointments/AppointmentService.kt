@@ -67,6 +67,11 @@ class AppointmentService(
             .also { log.debug("Fetched {} appointments with details for date {}", it.size, date) }
     }
 
+    fun getAppointmentsByPatientId(patientId: Long): List<AppointmentWithDetailsResponse> {
+        return appointmentRepository.findAppointmentsByPatientId(patientId)
+            .also { log.debug("Fetched {} appointments for patient {}", it.size, patientId) }
+    }
+
     @Transactional
     fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
         userRepository.findById(request.patientId)
@@ -111,6 +116,28 @@ class AppointmentService(
             savedAppointment.appointmentDate,
             savedAppointment.appointmentTime,
             savedAppointment.status
+        )
+    }
+
+    @Transactional
+    fun markAsNoShow(appointmentId: Long): AppointmentResponse {
+        val appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: $appointmentId") }
+
+        check(appointment.status != AppointmentStatus.COMPLETED) {
+            "Cannot mark completed appointment as no-show"
+        }
+
+        appointment.status = AppointmentStatus.NO_SHOW
+        val updatedAppointment = appointmentRepository.save(appointment)
+        log.info("Appointment marked as NO_SHOW: ID=$appointmentId")
+
+        return AppointmentResponse(
+            updatedAppointment.id,
+            updatedAppointment.patientId,
+            updatedAppointment.appointmentDate,
+            updatedAppointment.appointmentTime,
+            updatedAppointment.status
         )
     }
 

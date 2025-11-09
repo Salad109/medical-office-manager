@@ -29,7 +29,7 @@ class AppointmentController(
     }
 
     @GetMapping("/existing")
-    @PreAuthorize("hasRole('RECEPTIONIST')")
+    @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('DOCTOR')")
     fun getAppointmentsByDate(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate
     ): ResponseEntity<List<AppointmentWithDetailsResponse>> {
@@ -37,11 +37,25 @@ class AppointmentController(
         return ResponseEntity.ok(appointments)
     }
 
-    @PreAuthorize("hasRole('RECEPTIONIST') or (hasRole('PATIENT') and #request.patientId == authentication.principal.userId)")
+    @GetMapping("/patient/{id}")
+    @PreAuthorize("hasRole('RECEPTIONIST') or (#id == authentication.principal.userId)")
+    fun getAppointmentsByPatient(@PathVariable id: Long): ResponseEntity<List<AppointmentWithDetailsResponse>> {
+        val appointments = appointmentService.getAppointmentsByPatientId(id)
+        return ResponseEntity.ok(appointments)
+    }
+
     @PostMapping
+    @PreAuthorize("hasRole('RECEPTIONIST') or (hasRole('PATIENT') and #request.patientId == authentication.principal.userId)")
     fun bookAppointment(@Valid @RequestBody request: BookAppointmentRequest): ResponseEntity<AppointmentResponse> {
         val response = appointmentService.bookAppointment(request = request)
         return ResponseEntity.status(HttpStatus.CREATED).body(response)
+    }
+
+    @PostMapping("/{id}/mark-no-show")
+    @PreAuthorize("hasRole('RECEPTIONIST')")
+    fun markAppointmentAsNoShow(@PathVariable id: Long): ResponseEntity<AppointmentResponse> {
+        val appointment = appointmentService.markAsNoShow(id)
+        return ResponseEntity.ok(appointment)
     }
 
     @DeleteMapping("/{id}")

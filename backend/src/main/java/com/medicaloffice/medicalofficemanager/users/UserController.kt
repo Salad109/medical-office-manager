@@ -1,8 +1,9 @@
 package com.medicaloffice.medicalofficemanager.users
 
+import com.medicaloffice.medicalofficemanager.users.dto.PatientWithVisitsResponse
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
-import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
+import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*
 class UserController(
     private val userService: UserService
 ) {
-    @PreAuthorize("hasRole('RECEPTIONIST')")
+    @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('DOCTOR')")
     @GetMapping
     fun getAllUsers(pageable: Pageable): ResponseEntity<Page<UserResponse>> {
         val users = userService.getAllUsers(pageable)
@@ -30,7 +31,14 @@ class UserController(
         return ResponseEntity.ok(user)
     }
 
-    @PreAuthorize("hasRole('RECEPTIONIST')")
+    @PreAuthorize("hasRole('DOCTOR')")
+    @GetMapping("/{id}/with-visits")
+    fun getPatientWithVisits(@PathVariable id: Long): ResponseEntity<PatientWithVisitsResponse> {
+        val patientWithVisits = userService.getPatientWithVisits(id)
+        return ResponseEntity.ok(patientWithVisits)
+    }
+
+    @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('DOCTOR')")
     @GetMapping("/search")
     fun searchUsersByLastName(@RequestParam q: String, pageable: Pageable): ResponseEntity<Page<UserResponse>> {
         val users = userService.searchUsers(q, pageable)

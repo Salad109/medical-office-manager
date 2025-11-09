@@ -20,4 +20,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             "WHERE a.appointmentDate = :date " +
             "ORDER BY a.appointmentTime ASC")
     List<AppointmentWithDetailsResponse> findAppointmentsWithDetailsByDate(@Param("date") LocalDate date);
+
+    @Query("SELECT new com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse(" +
+            "a.id, a.patientId, p.firstName, p.lastName, p.phoneNumber, a.appointmentDate, a.appointmentTime, a.status) " +
+            "FROM Appointment a " +
+            "JOIN User p ON a.patientId = p.id " +
+            "WHERE a.patientId = :patientId " +
+            "ORDER BY a.appointmentDate DESC, a.appointmentTime DESC")
+    List<AppointmentWithDetailsResponse> findAppointmentsByPatientId(@Param("patientId") Long patientId);
 }
