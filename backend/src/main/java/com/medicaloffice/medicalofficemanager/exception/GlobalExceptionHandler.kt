@@ -1,9 +1,6 @@
 package com.medicaloffice.medicalofficemanager.exception
 
-import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidRoleException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.*
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
@@ -52,7 +49,12 @@ class GlobalExceptionHandler {
             .also { log.info("ResourceAlreadyExistsException: $message") }
     }
 
-    @ExceptionHandler(InvalidRoleException::class, ValidationException::class, InvalidTimeSlotException::class)
+    @ExceptionHandler(
+        InvalidRoleException::class,
+        ValidationException::class,
+        InvalidTimeSlotException::class,
+        InvalidAppointmentStatusException::class
+    )
     fun handleValidationExceptions(
         ex: Exception, request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {

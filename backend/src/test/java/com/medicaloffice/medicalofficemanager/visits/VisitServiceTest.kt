@@ -3,6 +3,7 @@ package com.medicaloffice.medicalofficemanager.visits
 import com.medicaloffice.medicalofficemanager.appointments.Appointment
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentRepository
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentStatus
+import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidAppointmentStatusException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.users.Role
@@ -201,7 +202,7 @@ class VisitServiceTest {
 
             // Then
             assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
-                .isInstanceOf(IllegalStateException::class.java)
+                .isInstanceOf(InvalidAppointmentStatusException::class.java)
                 .hasMessageContaining("Only scheduled or no-show appointments can be marked as completed")
         }
 

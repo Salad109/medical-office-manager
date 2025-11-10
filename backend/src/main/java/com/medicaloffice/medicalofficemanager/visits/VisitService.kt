@@ -2,6 +2,7 @@ package com.medicaloffice.medicalofficemanager.visits
 
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentRepository
 import com.medicaloffice.medicalofficemanager.appointments.AppointmentStatus
+import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidAppointmentStatusException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import com.medicaloffice.medicalofficemanager.visits.dto.VisitCreationRequest
@@ -25,8 +26,8 @@ class VisitService(
         val appointment = appointmentRepository.findById(request.appointmentId)
             .orElseThrow { ResourceNotFoundException("Appointment not found with ID: ${request.appointmentId}") }
 
-        check(appointment.status != AppointmentStatus.COMPLETED) {
-            "Only scheduled or no-show appointments can be marked as completed"
+        if (appointment.status == AppointmentStatus.COMPLETED) {
+            throw InvalidAppointmentStatusException("Only scheduled or no-show appointments can be marked as completed")
         }
 
         if (visitRepository.existsByAppointmentId(request.appointmentId)) {

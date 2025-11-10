@@ -3,10 +3,7 @@ package com.medicaloffice.medicalofficemanager.appointments
 import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
-import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidRoleException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.*
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.UserRepository
 import org.slf4j.LoggerFactory
@@ -48,18 +45,6 @@ class AppointmentService(
             .filterNot { it in bookedTimes }
             .map { it.toString() }
             .also { log.debug("Available slots on {}: {}", date, it) }
-    }
-
-    fun getAppointmentsByDate(date: LocalDate): List<AppointmentResponse> {
-        return appointmentRepository.findByAppointmentDate(date).map {
-            AppointmentResponse(
-                it.id,
-                it.patientId,
-                it.appointmentDate,
-                it.appointmentTime,
-                it.status
-            )
-        }.also { log.debug("Fetched {} appointments for date {}", it.size, date) }
     }
 
     fun getAppointmentsWithDetailsByDate(date: LocalDate): List<AppointmentWithDetailsResponse> {
@@ -124,8 +109,8 @@ class AppointmentService(
         val appointment = appointmentRepository.findById(appointmentId)
             .orElseThrow { ResourceNotFoundException("Appointment not found with ID: $appointmentId") }
 
-        check(appointment.status != AppointmentStatus.COMPLETED) {
-            "Cannot mark completed appointment as no-show"
+        if (appointment.status == AppointmentStatus.COMPLETED) {
+            throw InvalidAppointmentStatusException("Cannot mark completed appointment as no-show")
         }
 
         appointment.status = AppointmentStatus.NO_SHOW

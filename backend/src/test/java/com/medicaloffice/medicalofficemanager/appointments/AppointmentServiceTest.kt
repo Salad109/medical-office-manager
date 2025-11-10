@@ -1,10 +1,8 @@
 package com.medicaloffice.medicalofficemanager.appointments
 
+import com.medicaloffice.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse
 import com.medicaloffice.medicalofficemanager.appointments.dto.BookAppointmentRequest
-import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidRoleException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
-import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
+import com.medicaloffice.medicalofficemanager.exception.exceptions.*
 import com.medicaloffice.medicalofficemanager.users.Role
 import com.medicaloffice.medicalofficemanager.users.User
 import com.medicaloffice.medicalofficemanager.users.UserRepository
@@ -44,6 +42,7 @@ class AppointmentServiceTest {
     private lateinit var doctorUser: User
     private lateinit var receptionistUser: User
     private lateinit var testAppointment: Appointment
+    private lateinit var testAppointmentWithDetails: AppointmentWithDetailsResponse
 
     @BeforeEach
     fun setUp() {
@@ -86,6 +85,17 @@ class AppointmentServiceTest {
             appointmentDate = LocalDate.now().plusDays(1),
             appointmentTime = LocalTime.of(9, 0),
             status = AppointmentStatus.SCHEDULED
+        )
+
+        testAppointmentWithDetails = AppointmentWithDetailsResponse(
+            testAppointment.id,
+            testAppointment.patientId,
+            patientUser.firstName,
+            patientUser.lastName,
+            patientUser.phoneNumber,
+            testAppointment.appointmentDate,
+            testAppointment.appointmentTime,
+            testAppointment.status,
         )
     }
 
@@ -130,16 +140,16 @@ class AppointmentServiceTest {
     }
 
     @Nested
-    inner class GetAppointmentsByDateTests {
+    inner class GetAppointmentsWithDetailsByDateTests {
 
         @Test
         fun `should return empty list when no appointments exist`() {
             // Given
             val testDate = LocalDate.now().plusDays(1)
-            whenever(appointmentRepository.findByAppointmentDate(testDate)).thenReturn(emptyList())
+            whenever(appointmentRepository.findAppointmentsWithDetailsByDate(testDate)).thenReturn(emptyList())
 
             // When
-            val appointments = appointmentService.getAppointmentsByDate(testDate)
+            val appointments = appointmentService.getAppointmentsWithDetailsByDate(testDate)
 
             // Then
             assertThat(appointments).isEmpty()
@@ -149,32 +159,53 @@ class AppointmentServiceTest {
         fun `should return appointments for given date`() {
             // Given
             val testDate = LocalDate.now().plusDays(1)
-            whenever(appointmentRepository.findByAppointmentDate(testDate)).thenReturn(listOf(testAppointment))
+            whenever(appointmentRepository.findAppointmentsWithDetailsByDate(testDate)).thenReturn(
+                listOf(
+                    testAppointmentWithDetails
+                )
+            )
 
             // When
-            val appointments = appointmentService.getAppointmentsByDate(testDate)
+            val appointments = appointmentService.getAppointmentsWithDetailsByDate(testDate)
 
             // Then
             assertThat(appointments).hasSize(1)
             assertThat(appointments[0].id).isEqualTo(testAppointment.id)
             assertThat(appointments[0].patientId).isEqualTo(testAppointment.patientId)
+        }
+    }
 
+    @Nested
+    inner class GetAppointmentsByPatientIdTests {
+
+        @Test
+        fun `should return empty list when patient has no appointments`() {
+            // Given
+            whenever(appointmentRepository.findAppointmentsByPatientId(patientUser.id!!)).thenReturn(emptyList())
+
+            // When
+            val appointments = appointmentService.getAppointmentsByPatientId(patientUser.id!!)
+
+            // Then
+            assertThat(appointments).isEmpty()
         }
 
         @Test
-        fun `should return multiple appointments`() {
+        fun `should return appointments for given patient ID`() {
             // Given
-            val testDate = LocalDate.now().plusDays(1)
-            val appointment1 = Appointment(1L, 1L, testDate, LocalTime.of(9, 0), AppointmentStatus.SCHEDULED)
-            val appointment2 = Appointment(2L, 2L, testDate, LocalTime.of(10, 0), AppointmentStatus.SCHEDULED)
-            val mockAppointments = listOf(appointment1, appointment2)
-            whenever(appointmentRepository.findByAppointmentDate(testDate)).thenReturn(mockAppointments)
+            whenever(appointmentRepository.findAppointmentsByPatientId(patientUser.id!!)).thenReturn(
+                listOf(
+                    testAppointmentWithDetails
+                )
+            )
 
             // When
-            val appointments = appointmentService.getAppointmentsByDate(testDate)
+            val appointments = appointmentService.getAppointmentsByPatientId(patientUser.id!!)
 
             // Then
-            assertThat(appointments).hasSize(2)
+            assertThat(appointments).hasSize(1)
+            assertThat(appointments[0].id).isEqualTo(testAppointment.id)
+            assertThat(appointments[0].patientId).isEqualTo(testAppointment.patientId)
         }
     }
 
@@ -289,6 +320,52 @@ class AppointmentServiceTest {
                 .hasMessageContaining("already booked")
             verify(appointmentRepository, never()).save(any())
         }
+    }
+
+    @Nested
+    inner class MarkAsNoShowTests {
+
+        @Test
+        fun `should mark appointment as no-show successfully`() {
+            // Given
+            whenever(appointmentRepository.findById(testAppointment.id!!)).thenReturn(Optional.of(testAppointment))
+            whenever(appointmentRepository.save(any(Appointment::class.java))).thenAnswer { invocation -> invocation.arguments[0] }
+
+            // When
+            val response = appointmentService.markAsNoShow(testAppointment.id!!)
+
+            // Then
+            assertThat(response.status).isEqualTo(AppointmentStatus.NO_SHOW)
+            verify(appointmentRepository).save(any(Appointment::class.java))
+        }
+
+        @Test
+        fun `should throw exception when appointment does not exist`() {
+            // Given
+            val nonExistentId = 999L
+            whenever(appointmentRepository.findById(nonExistentId)).thenReturn(Optional.empty())
+
+            // Then
+            assertThatThrownBy {
+                appointmentService.markAsNoShow(nonExistentId)
+            }.isInstanceOf(ResourceNotFoundException::class.java)
+                .hasMessageContaining("Appointment not found")
+            verify(appointmentRepository, never()).save(any())
+        }
+    }
+
+    @Test
+    fun `should throw exception when marking completed appointment as no-show`() {
+        // Given
+        val completedAppointment = testAppointment.apply { status = AppointmentStatus.COMPLETED }
+        whenever(appointmentRepository.findById(completedAppointment.id!!)).thenReturn(Optional.of(completedAppointment))
+
+        // Then
+        assertThatThrownBy {
+            appointmentService.markAsNoShow(completedAppointment.id!!)
+        }.isInstanceOf(InvalidAppointmentStatusException::class.java)
+            .hasMessageContaining("Cannot mark completed appointment as no-show")
+        verify(appointmentRepository, never()).save(any())
     }
 
     @Nested
