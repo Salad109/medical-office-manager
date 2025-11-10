@@ -2,9 +2,9 @@ package com.medicaloffice.medicalofficemanager.users
 
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import com.medicaloffice.medicalofficemanager.exception.exceptions.ResourceNotFoundException
-import com.medicaloffice.medicalofficemanager.users.dto.PatientWithVisitsResponse
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
+import com.medicaloffice.medicalofficemanager.users.dto.UserResponseWithVisits
 import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import com.medicaloffice.medicalofficemanager.visits.VisitRepository
 import jakarta.validation.ValidationException
@@ -25,11 +25,12 @@ class UserService(
     fun getAllUsers(pageable: Pageable): Page<UserResponse> {
         return userRepository.findAll(pageable).map { user ->
             user.toResponse()
-        }
+        }.also { log.debug("Fetched ${it.totalElements} users") }
     }
 
     fun getUserById(id: Long): UserResponse {
-        val user = userRepository.findById(id).orElseThrow { ResourceNotFoundException("User with id $id not found") }
+        val user = userRepository.findById(id).orElseThrow { ResourceNotFoundException("User with ID $id not found") }
+        log.debug("Fetched user with ID {}", id)
         return user.toResponse()
     }
 
@@ -37,8 +38,19 @@ class UserService(
         if (query.length < 3)
             return Page.empty(pageable)
 
-        val searchQuery = "*$query*"
+        val searchQuery = "*${query}*"
         return userRepository.searchByName(searchQuery, pageable).map { it.toResponse() }
+            .also { log.debug("Searched users with query '{}', found {} results", query, it.totalElements) }
+    }
+
+    fun getPatientWithVisits(patientId: Long): UserResponseWithVisits {
+        val user = userRepository.findById(patientId)
+            .orElseThrow { ResourceNotFoundException("User with ID $patientId not found") }
+
+        val visits = visitRepository.findVisitResponsesByPatientId(patientId)
+
+        log.debug("Fetched patient with ID {} and {} visits", patientId, visits.size)
+        return UserResponseWithVisits(user.toResponse(), visits)
     }
 
     fun createUser(request: UserCreationRequest): UserResponse {
@@ -100,15 +112,9 @@ class UserService(
         return updatedUser.toResponse()
     }
 
-    fun getPatientWithVisits(patientId: Long): PatientWithVisitsResponse {
-        val user = userRepository.findById(patientId)
-            .orElseThrow { ResourceNotFoundException("User with id $patientId not found") }
-
-        val visits = visitRepository.findVisitResponsesByPatientId(patientId)
-
-        return PatientWithVisitsResponse(user.toResponse(), visits)
-    }
-
+    /**
+     * Removes passwordHash from User when converting to UserResponse.
+     */
     fun User.toResponse() = UserResponse(
         this.id, this.username, this.firstName, this.lastName, this.phoneNumber, this.pesel, this.role
     )
