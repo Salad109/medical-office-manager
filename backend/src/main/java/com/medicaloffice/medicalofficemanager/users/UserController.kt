@@ -1,8 +1,8 @@
 package com.medicaloffice.medicalofficemanager.users
 
-import com.medicaloffice.medicalofficemanager.users.dto.PatientWithVisitsResponse
 import com.medicaloffice.medicalofficemanager.users.dto.UserCreationRequest
 import com.medicaloffice.medicalofficemanager.users.dto.UserResponse
+import com.medicaloffice.medicalofficemanager.users.dto.UserResponseWithVisits
 import com.medicaloffice.medicalofficemanager.users.dto.UserUpdateRequest
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
@@ -33,7 +33,7 @@ class UserController(
 
     @PreAuthorize("hasRole('DOCTOR')")
     @GetMapping("/{id}/with-visits")
-    fun getPatientWithVisits(@PathVariable id: Long): ResponseEntity<PatientWithVisitsResponse> {
+    fun getPatientWithVisits(@PathVariable id: Long): ResponseEntity<UserResponseWithVisits> {
         val patientWithVisits = userService.getPatientWithVisits(id)
         return ResponseEntity.ok(patientWithVisits)
     }
