@@ -1,40 +1,43 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import ErrorAlert from '../components/ErrorAlert';
 import LoadingSpinner from '../components/LoadingSpinner';
 import {
-    createAppointment,
-    createPatient,
-    deleteAppointment,
-    deletePatient,
+    bookAppointment,
+    cancelAppointment,
+    createUser,
     getAppointments,
-    getPatients,
-    updateAppointment,
-    updatePatient,
+    getUsers,
+    markAppointmentAsNoShow,
+    updateUser,
 } from '../services/api';
 
-const createPatientFormState = () => ({id: null, firstName: '', lastName: '', email: '', phone: ''});
-const createAppointmentFormState = () => ({
+const createUserFormState = () => ({
     id: null,
+    username: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    pesel: '',
+    role: 'PATIENT'
+});
+
+const createAppointmentFormState = () => ({
     patientId: '',
-    doctorId: '',
-    dateTime: '',
-    reason: '',
+    date: '',
+    time: '09:00',
 });
 
 const ReceptionistDashboard = () => {
-    const [patients, setPatients] = useState([]);
+    const [users, setUsers] = useState([]);
     const [appointments, setAppointments] = useState([]);
-    const [patientForm, setPatientForm] = useState(createPatientFormState);
+    const [userForm, setUserForm] = useState(createUserFormState);
     const [appointmentForm, setAppointmentForm] = useState(createAppointmentFormState);
-    const [loadingPatients, setLoadingPatients] = useState(true);
-    const [loadingAppointments, setLoadingAppointments] = useState(true);
+    const [selectedDate, setSelectedDate] = useState('');
+    const [loadingUsers, setLoadingUsers] = useState(true);
+    const [loadingAppointments, setLoadingAppointments] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-
-    useEffect(() => {
-        loadPatients();
-        loadAppointments();
-    }, []);
 
     const handleError = (message) => {
         setError(message);
@@ -46,87 +49,96 @@ const ReceptionistDashboard = () => {
         setError('');
     };
 
-    const loadPatients = async () => {
-        setLoadingPatients(true);
+    const loadUsers = useCallback(async () => {
+        setLoadingUsers(true);
         try {
-            const data = await getPatients();
-            setPatients(Array.isArray(data) ? data : []);
+            const data = await getUsers();
+            // Handle paginated response
+            const userList = data?.content || (Array.isArray(data) ? data : []);
+            setUsers(userList);
         } catch (err) {
-            handleError(err.message || 'Failed to load patients.');
+            handleError(err.message || 'Failed to load users.');
         } finally {
-            setLoadingPatients(false);
+            setLoadingUsers(false);
         }
-    };
+    }, []);
 
-    const loadAppointments = async () => {
+    const loadAppointments = useCallback(async () => {
         setLoadingAppointments(true);
         try {
-            const data = await getAppointments();
+            const data = await getAppointments(selectedDate);
             setAppointments(Array.isArray(data) ? data : []);
         } catch (err) {
             handleError(err.message || 'Failed to load appointments.');
         } finally {
             setLoadingAppointments(false);
         }
-    };
+    }, [selectedDate]);
 
-    const handlePatientSubmit = async (event) => {
+    useEffect(() => {
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+        loadUsers();
+    }, [loadUsers]);
+
+    useEffect(() => {
+        if (selectedDate) {
+            loadAppointments();
+        }
+    }, [selectedDate, loadAppointments]);
+
+    const handleUserSubmit = async (event) => {
         event.preventDefault();
         try {
-            if (patientForm.id) {
-                await updatePatient(patientForm.id, patientForm);
-                handleSuccess('Patient updated successfully.');
+            if (userForm.id) {
+                await updateUser(userForm.id, userForm);
+                handleSuccess('User updated successfully.');
             } else {
-                await createPatient(patientForm);
-                handleSuccess('Patient created successfully.');
+                await createUser(userForm);
+                handleSuccess('User created successfully.');
             }
-            setPatientForm(createPatientFormState());
-            await loadPatients();
+            setUserForm(createUserFormState());
+            await loadUsers();
         } catch (err) {
-            handleError(err.message || 'Unable to save patient.');
-        }
-    };
-
-    const handlePatientDelete = async (id) => {
-        if (!window.confirm('Delete this patient?')) {
-            return;
-        }
-        try {
-            await deletePatient(id);
-            handleSuccess('Patient removed.');
-            await loadPatients();
-        } catch (err) {
-            handleError(err.message || 'Unable to delete patient.');
+            handleError(err.message || 'Unable to save user.');
         }
     };
 
     const handleAppointmentSubmit = async (event) => {
         event.preventDefault();
         try {
-            if (appointmentForm.id) {
-                await updateAppointment(appointmentForm.id, appointmentForm);
-                handleSuccess('Appointment updated successfully.');
-            } else {
-                await createAppointment(appointmentForm);
-                handleSuccess('Appointment created successfully.');
-            }
+            await bookAppointment(appointmentForm);
+            handleSuccess('Appointment created successfully.');
             setAppointmentForm(createAppointmentFormState());
             await loadAppointments();
         } catch (err) {
-            handleError(err.message || 'Unable to save appointment.');
+            handleError(err.message || 'Unable to create appointment.');
         }
     };
 
-    const handleAppointmentDelete = async (id) => {
-        if (!window.confirm('Delete this appointment?')) {
+    const handleAppointmentCancel = async (id) => {
+        if (!window.confirm('Cancel this appointment?')) {
             return;
         }
         try {
-            await deleteAppointment(id);
-            handleSuccess('Appointment removed.');
+            await cancelAppointment(id);
+            handleSuccess('Appointment cancelled.');
             await loadAppointments();
         } catch (err) {
-            handleError(err.message || 'Unable to delete appointment.');
+            handleError(err.message || 'Unable to cancel appointment.');
+        }
+    };
+
+    const handleMarkAsNoShow = async (id) => {
+        if (!window.confirm('Mark this appointment as no-show?')) {
+            return;
+        }
+        try {
+            await markAppointmentAsNoShow(id);
+            handleSuccess('Appointment marked as no-show.');
+            await loadAppointments();
+        } catch (err) {
+            handleError(err.message || 'Unable to mark as no-show.');
         }
     };
 
@@ -148,108 +160,147 @@ const ReceptionistDashboard = () => {
                 <div
                     className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
                     <div>
-                        <h2 className="h4 fw-bold text-primary mb-1">Patients</h2>
-                        <p className="text-muted mb-0">Create, update, or remove patient records.</p>
+                        <h2 className="h4 fw-bold text-primary mb-1">Users</h2>
+                        <p className="text-muted mb-0">Create and manage user accounts (patients, doctors,
+                            receptionists).</p>
                     </div>
-                    <button type="button" className="btn btn-outline-primary" onClick={loadPatients}
-                            disabled={loadingPatients}>
+                    <button type="button" className="btn btn-outline-primary" onClick={loadUsers}
+                            disabled={loadingUsers}>
                         Refresh
                     </button>
                 </div>
-                <form className="row g-3 mb-4" onSubmit={handlePatientSubmit}>
-                    <div className="col-md-6">
-                        <label className="form-label">First name</label>
+                <form className="row g-3 mb-4" onSubmit={handleUserSubmit}>
+                    <div className="col-md-4">
+                        <label className="form-label">Username*</label>
                         <input
                             type="text"
                             className="form-control"
-                            value={patientForm.firstName}
-                            onChange={(event) => setPatientForm((prev) => ({...prev, firstName: event.target.value}))}
+                            value={userForm.username}
+                            onChange={(e) => setUserForm((prev) => ({...prev, username: e.target.value}))}
                             required
                         />
                     </div>
+                    <div className="col-md-4">
+                        <label className="form-label">Password{userForm.id ? '' : '*'}</label>
+                        <input
+                            type="password"
+                            className="form-control"
+                            value={userForm.password}
+                            onChange={(e) => setUserForm((prev) => ({...prev, password: e.target.value}))}
+                            required={!userForm.id}
+                            placeholder={userForm.id ? 'Leave blank to keep current' : ''}
+                        />
+                    </div>
+                    <div className="col-md-4">
+                        <label className="form-label">Role*</label>
+                        <select
+                            className="form-select"
+                            value={userForm.role}
+                            onChange={(e) => setUserForm((prev) => ({...prev, role: e.target.value}))}
+                            required
+                        >
+                            <option value="PATIENT">Patient</option>
+                            <option value="DOCTOR">Doctor</option>
+                            <option value="RECEPTIONIST">Receptionist</option>
+                        </select>
+                    </div>
                     <div className="col-md-6">
-                        <label className="form-label">Last name</label>
+                        <label className="form-label">First Name*</label>
                         <input
                             type="text"
                             className="form-control"
-                            value={patientForm.lastName}
-                            onChange={(event) => setPatientForm((prev) => ({...prev, lastName: event.target.value}))}
+                            value={userForm.firstName}
+                            onChange={(e) => setUserForm((prev) => ({...prev, firstName: e.target.value}))}
                             required
                         />
                     </div>
                     <div className="col-md-6">
-                        <label className="form-label">Email</label>
+                        <label className="form-label">Last Name*</label>
                         <input
-                            type="email"
+                            type="text"
                             className="form-control"
-                            value={patientForm.email}
-                            onChange={(event) => setPatientForm((prev) => ({...prev, email: event.target.value}))}
+                            value={userForm.lastName}
+                            onChange={(e) => setUserForm((prev) => ({...prev, lastName: e.target.value}))}
                             required
                         />
                     </div>
                     <div className="col-md-6">
-                        <label className="form-label">Phone</label>
+                        <label className="form-label">Phone Number*</label>
                         <input
                             type="tel"
                             className="form-control"
-                            value={patientForm.phone}
-                            onChange={(event) => setPatientForm((prev) => ({...prev, phone: event.target.value}))}
+                            value={userForm.phoneNumber}
+                            onChange={(e) => setUserForm((prev) => ({...prev, phoneNumber: e.target.value}))}
                             required
+                        />
+                    </div>
+                    <div className="col-md-6">
+                        <label
+                            className="form-label">PESEL {userForm.role === 'PATIENT' ? '*' : '(Patient only)'}</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            value={userForm.pesel}
+                            onChange={(e) => setUserForm((prev) => ({...prev, pesel: e.target.value}))}
+                            required={userForm.role === 'PATIENT'}
+                            maxLength="11"
+                            placeholder="11 digits"
                         />
                     </div>
                     <div className="col-12 d-flex justify-content-between gap-2">
                         <button type="button" className="btn btn-outline-secondary"
-                                onClick={() => setPatientForm(createPatientFormState())}>
+                                onClick={() => setUserForm(createUserFormState())}>
                             Clear
                         </button>
                         <button type="submit" className="btn btn-primary">
-                            {patientForm.id ? 'Update patient' : 'Add patient'}
+                            {userForm.id ? 'Update user' : 'Add user'}
                         </button>
                     </div>
                 </form>
-                {loadingPatients ? (
-                    <LoadingSpinner message="Loading patients"/>
-                ) : patients.length === 0 ? (
-                    <p className="text-center text-muted">No patients yet.</p>
+                {loadingUsers ? (
+                    <LoadingSpinner message="Loading users"/>
+                ) : users.length === 0 ? (
+                    <p className="text-center text-muted">No users yet.</p>
                 ) : (
                     <div className="table-responsive rounded-4 overflow-hidden shadow-sm">
                         <table className="table align-middle">
                             <thead className="table-light">
                             <tr>
                                 <th>Name</th>
-                                <th>Email</th>
+                                <th>Username</th>
+                                <th>Role</th>
                                 <th>Phone</th>
                                 <th className="text-end">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
-                            {patients.map((patient) => (
-                                <tr key={patient.id}>
+                            {users.map((user) => (
+                                <tr key={user.id}>
                                     <td>
-                                        <div className="fw-semibold">{patient.firstName} {patient.lastName}</div>
-                                        <div className="text-muted small">#{patient.id}</div>
+                                        <div className="fw-semibold">{user.firstName} {user.lastName}</div>
+                                        <div className="text-muted small">ID: {user.id}</div>
                                     </td>
-                                    <td>{patient.email}</td>
-                                    <td>{patient.phone}</td>
-                                    <td className="text-end d-flex gap-2 justify-content-end">
+                                    <td>{user.username}</td>
+                                    <td><span className="badge text-bg-secondary">{user.role}</span></td>
+                                    <td>{user.phoneNumber}</td>
+                                    <td className="text-end">
                                         <button
                                             type="button"
                                             className="btn btn-outline-primary btn-sm"
                                             onClick={() =>
-                                                setPatientForm({
-                                                    id: patient.id,
-                                                    firstName: patient.firstName || '',
-                                                    lastName: patient.lastName || '',
-                                                    email: patient.email || '',
-                                                    phone: patient.phone || '',
+                                                setUserForm({
+                                                    id: user.id,
+                                                    username: user.username || '',
+                                                    password: '',
+                                                    firstName: user.firstName || '',
+                                                    lastName: user.lastName || '',
+                                                    phoneNumber: user.phoneNumber || '',
+                                                    pesel: user.pesel || '',
+                                                    role: user.role || 'PATIENT',
                                                 })
                                             }
                                         >
                                             Edit
-                                        </button>
-                                        <button type="button" className="btn btn-outline-danger btn-sm"
-                                                onClick={() => handlePatientDelete(patient.id)}>
-                                            Delete
                                         </button>
                                     </td>
                                 </tr>
@@ -271,54 +322,71 @@ const ReceptionistDashboard = () => {
                         Refresh
                     </button>
                 </div>
+                <div className="mb-4">
+                    <label htmlFor="appointmentDate" className="form-label fw-semibold">View Date</label>
+                    <input
+                        type="date"
+                        id="appointmentDate"
+                        className="form-control"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                    />
+                </div>
                 <form className="row g-3 mb-4" onSubmit={handleAppointmentSubmit}>
-                    <div className="col-md-6">
-                        <label className="form-label">Patient ID</label>
+                    <div className="col-md-4">
+                        <label className="form-label">Patient ID*</label>
                         <input
                             type="number"
                             className="form-control"
                             value={appointmentForm.patientId}
-                            onChange={(event) => setAppointmentForm((prev) => ({
+                            onChange={(e) => setAppointmentForm((prev) => ({
                                 ...prev,
-                                patientId: event.target.value
+                                patientId: e.target.value
                             }))}
                             required
                         />
                     </div>
-                    <div className="col-md-6">
-                        <label className="form-label">Doctor ID</label>
+                    <div className="col-md-4">
+                        <label className="form-label">Date*</label>
                         <input
-                            type="number"
+                            type="date"
                             className="form-control"
-                            value={appointmentForm.doctorId}
-                            onChange={(event) => setAppointmentForm((prev) => ({
+                            value={appointmentForm.date}
+                            onChange={(e) => setAppointmentForm((prev) => ({
                                 ...prev,
-                                doctorId: event.target.value
+                                date: e.target.value
                             }))}
                             required
                         />
                     </div>
-                    <div className="col-md-6">
-                        <label className="form-label">Date &amp; time</label>
-                        <input
-                            type="datetime-local"
-                            className="form-control"
-                            value={appointmentForm.dateTime}
-                            onChange={(event) => setAppointmentForm((prev) => ({
+                    <div className="col-md-4">
+                        <label className="form-label">Time*</label>
+                        <select
+                            className="form-select"
+                            value={appointmentForm.time}
+                            onChange={(e) => setAppointmentForm((prev) => ({
                                 ...prev,
-                                dateTime: event.target.value
+                                time: e.target.value
                             }))}
                             required
-                        />
-                    </div>
-                    <div className="col-md-6">
-                        <label className="form-label">Reason</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            value={appointmentForm.reason}
-                            onChange={(event) => setAppointmentForm((prev) => ({...prev, reason: event.target.value}))}
-                        />
+                        >
+                            <option value="09:00">09:00</option>
+                            <option value="09:30">09:30</option>
+                            <option value="10:00">10:00</option>
+                            <option value="10:30">10:30</option>
+                            <option value="11:00">11:00</option>
+                            <option value="11:30">11:30</option>
+                            <option value="12:00">12:00</option>
+                            <option value="12:30">12:30</option>
+                            <option value="13:00">13:00</option>
+                            <option value="13:30">13:30</option>
+                            <option value="14:00">14:00</option>
+                            <option value="14:30">14:30</option>
+                            <option value="15:00">15:00</option>
+                            <option value="15:30">15:30</option>
+                            <option value="16:00">16:00</option>
+                            <option value="16:30">16:30</option>
+                        </select>
                     </div>
                     <div className="col-12 d-flex justify-content-between gap-2">
                         <button type="button" className="btn btn-outline-secondary"
@@ -326,63 +394,66 @@ const ReceptionistDashboard = () => {
                             Clear
                         </button>
                         <button type="submit" className="btn btn-primary">
-                            {appointmentForm.id ? 'Update appointment' : 'Add appointment'}
+                            Book appointment
                         </button>
                     </div>
                 </form>
                 {loadingAppointments ? (
                     <LoadingSpinner message="Loading appointments"/>
                 ) : appointments.length === 0 ? (
-                    <p className="text-center text-muted">No appointments found.</p>
+                    <p className="text-center text-muted">No appointments found for {selectedDate}.</p>
                 ) : (
                     <div className="table-responsive rounded-4 overflow-hidden shadow-sm">
                         <table className="table align-middle">
                             <thead className="table-light">
                             <tr>
+                                <th>Time</th>
                                 <th>Patient</th>
-                                <th>Doctor</th>
-                                <th>Date</th>
-                                <th>Reason</th>
+                                <th>Phone</th>
+                                <th>Status</th>
                                 <th className="text-end">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             {appointments.map((appointment) => (
                                 <tr key={appointment.id}>
+                                    <td className="fw-semibold">{appointment.time}</td>
                                     <td>
-                                        <div
-                                            className="fw-semibold">{appointment.patientName || appointment.patientId}</div>
-                                        <div className="text-muted small">#{appointment.patientId}</div>
+                                        <div className="fw-semibold">
+                                            {appointment.patientFirstName} {appointment.patientLastName}
+                                        </div>
+                                        <div className="text-muted small">ID: {appointment.patientId}</div>
                                     </td>
+                                    <td>{appointment.patientPhoneNumber}</td>
                                     <td>
-                                        <div
-                                            className="fw-semibold">{appointment.doctorName || appointment.doctorId}</div>
-                                        <div className="text-muted small">#{appointment.doctorId}</div>
+                                        <span className={`badge ${
+                                            appointment.status === 'COMPLETED' ? 'text-bg-success' :
+                                                appointment.status === 'NO_SHOW' ? 'text-bg-danger' :
+                                                    'text-bg-primary'
+                                        }`}>
+                                            {appointment.status}
+                                        </span>
                                     </td>
-                                    <td>{new Date(appointment.dateTime || appointment.date || Date.now()).toLocaleString()}</td>
-                                    <td className="text-muted">{appointment.reason || 'General visit'}</td>
-                                    <td className="text-end d-flex gap-2 justify-content-end">
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-primary btn-sm"
-                                            onClick={() => {
-                                                const isoDate = appointment.dateTime || appointment.date || '';
-                                                const normalized = isoDate ? isoDate.replace(' ', 'T').slice(0, 16) : '';
-                                                setAppointmentForm({
-                                                    id: appointment.id,
-                                                    patientId: String(appointment.patientId ?? ''),
-                                                    doctorId: String(appointment.doctorId ?? ''),
-                                                    dateTime: normalized,
-                                                    reason: appointment.reason || '',
-                                                });
-                                            }}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button type="button" className="btn btn-outline-danger btn-sm"
-                                                onClick={() => handleAppointmentDelete(appointment.id)}>
-                                            Delete
-                                        </button>
+                                    <td className="text-end">
+                                        <div className="d-flex gap-2 justify-content-end">
+                                            {appointment.status === 'SCHEDULED' && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-outline-warning btn-sm"
+                                                    onClick={() => handleMarkAsNoShow(appointment.id)}
+                                                >
+                                                    No-Show
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline-danger btn-sm"
+                                                onClick={() => handleAppointmentCancel(appointment.id)}
+                                                disabled={appointment.status === 'COMPLETED'}
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
