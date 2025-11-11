@@ -41,6 +41,7 @@ async function parsePayload(response) {
     }
 }
 
+// Auth API
 export async function login(credentials) {
     return apiFetch('/api/auth/login', {
         method: 'POST',
@@ -48,71 +49,75 @@ export async function login(credentials) {
     });
 }
 
-export async function register(registerData) {
-    return apiFetch('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(registerData),
-    });
-}
+// Appointments API
+export const getAvailableAppointments = (date) =>
+    apiFetch(`/api/appointments/available?date=${date}`);
 
-export const getAvailableAppointments = () => apiFetch('/api/appointments/available');
-export const bookAppointment = (appointmentId) =>
-    apiFetch(`/api/appointments/${appointmentId}/book`, {
+export const bookAppointment = (appointmentData) =>
+    apiFetch('/api/appointments', {
         method: 'POST',
+        body: JSON.stringify(appointmentData),
     });
 
-export const getDoctorVisits = () => apiFetch('/api/doctor/visits/today');
+export const getAppointments = (date) =>
+    apiFetch(`/api/appointments/existing?date=${date}`);
+
+export const getPatientAppointments = (patientId) =>
+    apiFetch(`/api/appointments/patient/${patientId}`);
+
+export const markAppointmentAsNoShow = (id) =>
+    apiFetch(`/api/appointments/${id}/mark-no-show`, {
+        method: 'POST',
+    });
+
+export const cancelAppointment = (id) =>
+    apiFetch(`/api/appointments/${id}`, {
+        method: 'DELETE',
+    });
+
+// Visits API (Doctor)
+export const createVisit = (visitData) =>
+    apiFetch('/api/visits', {
+        method: 'POST',
+        body: JSON.stringify(visitData),
+    });
+
 export const updateVisitNotes = (visitId, notes) =>
-    apiFetch(`/api/doctor/visits/${visitId}/notes`, {
+    apiFetch(`/api/visits/${visitId}`, {
         method: 'PUT',
         body: JSON.stringify({notes}),
     });
 
-export const getPatients = () => apiFetch('/api/patients');
-export const createPatient = (patient) =>
-    apiFetch('/api/patients', {
+// Users API (Receptionist/Doctor)
+export const getUsers = () => apiFetch('/api/users');
+
+export const getPatientWithVisits = (patientId) =>
+    apiFetch(`/api/users/${patientId}/with-visits`);
+
+export const createUser = (userData) =>
+    apiFetch('/api/users', {
         method: 'POST',
-        body: JSON.stringify(patient),
-    });
-export const updatePatient = (id, patient) =>
-    apiFetch(`/api/patients/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(patient),
-    });
-export const deletePatient = (id) =>
-    apiFetch(`/api/patients/${id}`, {
-        method: 'DELETE',
+        body: JSON.stringify(userData),
     });
 
-export const getAppointments = () => apiFetch('/api/appointments');
-export const createAppointment = (appointment) =>
-    apiFetch('/api/appointments', {
-        method: 'POST',
-        body: JSON.stringify(appointment),
-    });
-export const updateAppointment = (id, appointment) =>
-    apiFetch(`/api/appointments/${id}`, {
+export const updateUser = (id, userData) =>
+    apiFetch(`/api/users/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(appointment),
-    });
-export const deleteAppointment = (id) =>
-    apiFetch(`/api/appointments/${id}`, {
-        method: 'DELETE',
+        body: JSON.stringify(userData),
     });
 
 export default {
     login,
-    register,
     getAvailableAppointments,
     bookAppointment,
-    getDoctorVisits,
-    updateVisitNotes,
-    getPatients,
-    createPatient,
-    updatePatient,
-    deletePatient,
     getAppointments,
-    createAppointment,
-    updateAppointment,
-    deleteAppointment,
+    getPatientAppointments,
+    markAppointmentAsNoShow,
+    cancelAppointment,
+    createVisit,
+    updateVisitNotes,
+    getUsers,
+    getPatientWithVisits,
+    createUser,
+    updateUser,
 };
