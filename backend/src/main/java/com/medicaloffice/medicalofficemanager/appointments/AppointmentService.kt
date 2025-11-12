@@ -65,7 +65,10 @@ class AppointmentService(
             ?: throw InvalidRoleException("User with ID ${request.patientId} is not a patient")
 
 
-        if (request.date.isBefore(LocalDate.now()) && request.time.isBefore(LocalTime.now())) {
+        val now = LocalDate.now()
+        val currentTime = LocalTime.now()
+
+        if (request.date.isBefore(now) || (request.date.isEqual(now) && request.time.isBefore(currentTime))) {
             throw InvalidTimeSlotException("Cannot book appointment in the past")
         }
 

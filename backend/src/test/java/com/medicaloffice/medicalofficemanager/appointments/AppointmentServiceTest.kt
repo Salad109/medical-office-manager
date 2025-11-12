@@ -213,7 +213,7 @@ class AppointmentServiceTest {
     inner class BookAppointmentTests {
 
         @Test
-        fun `should book appointment successfully`() {
+        fun `should book appointment successfully for future day`() {
             // Given
             val futureDate = LocalDate.now().plusDays(1)
             val validTime = LocalTime.of(9, 0)
@@ -234,6 +234,31 @@ class AppointmentServiceTest {
             assertThat(response.patientId).isEqualTo(patientUser.id)
             assertThat(response.date).isEqualTo(futureDate)
             assertThat(response.time).isEqualTo(validTime)
+            assertThat(response.status).isEqualTo(AppointmentStatus.SCHEDULED)
+        }
+
+        @Test
+        fun `should book appointment successfully for same day with future time`() {
+            // Given
+            val today = LocalDate.now()
+            val futureTime = LocalTime.of(16, 30)
+            val request = BookAppointmentRequest(patientUser.id, today, futureTime)
+
+            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+            whenever(appointmentRepository.findByAppointmentDate(today)).thenReturn(emptyList())
+            whenever(appointmentRepository.save(any(Appointment::class.java))).thenAnswer { invocation ->
+                (invocation.arguments[0] as Appointment).apply { id = 2L }
+            }
+
+            // When
+            val response = appointmentService.bookAppointment(request)
+
+            // Then
+            assertThat(response).isNotNull
+            assertThat(response.id).isEqualTo(2L)
+            assertThat(response.patientId).isEqualTo(patientUser.id)
+            assertThat(response.date).isEqualTo(today)
+            assertThat(response.time).isEqualTo(futureTime)
             assertThat(response.status).isEqualTo(AppointmentStatus.SCHEDULED)
         }
 
@@ -272,6 +297,22 @@ class AppointmentServiceTest {
             // Given
             val pastDate = LocalDate.now().minusDays(1)
             val request = BookAppointmentRequest(patientUser.id, pastDate, LocalTime.of(9, 0))
+
+            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+
+            // Then
+            assertThatThrownBy { appointmentService.bookAppointment(request) }
+                .isInstanceOf(InvalidTimeSlotException::class.java)
+                .hasMessageContaining("Cannot book appointment in the past")
+            verify(appointmentRepository, never()).save(any())
+        }
+
+        @Test
+        fun `should throw exception when booking today with past time`() {
+            // Given
+            val today = LocalDate.now()
+            val pastTime = LocalTime.now().minusHours(1)
+            val request = BookAppointmentRequest(patientUser.id, today, pastTime)
 
             whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
 
