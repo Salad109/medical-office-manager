@@ -26,6 +26,14 @@ jobs:
         working-directory: ./backend
         run: ./mvnw clean test
 
+      - name: Upload backend coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./backend/target/site/jacoco/jacoco.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+
   frontend:
     name: Frontend Build & Test
     runs-on: ubuntu-latest
