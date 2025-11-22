@@ -1,20 +1,18 @@
 package io.salad109.medicalofficemanager.visits
 
-import io.salad109.medicalofficemanager.appointments.AppointmentRepository
-import io.salad109.medicalofficemanager.appointments.AppointmentStatus
-import io.salad109.medicalofficemanager.exception.exceptions.InvalidAppointmentStatusException
 import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import io.salad109.medicalofficemanager.visits.dto.VisitCreationRequest
 import io.salad109.medicalofficemanager.visits.dto.VisitResponse
 import io.salad109.medicalofficemanager.visits.dto.VisitUpdateRequest
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 class VisitService(
     private val visitRepository: VisitRepository,
-    private val appointmentRepository: AppointmentRepository,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) : VisitManagement {
 
     override fun findVisitResponsesByPatient(patientId: Long): List<VisitResponse> {
@@ -23,13 +21,6 @@ class VisitService(
 
     @Transactional
     fun markVisitAsCompleted(request: VisitCreationRequest, doctorId: Long): VisitResponse {
-        val appointment = appointmentRepository.findById(request.appointmentId)
-            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: ${request.appointmentId}") }
-
-        if (appointment.status == AppointmentStatus.COMPLETED) {
-            throw InvalidAppointmentStatusException("Only scheduled or no-show appointments can be marked as completed")
-        }
-
         if (visitRepository.existsByAppointmentId(request.appointmentId)) {
             throw ResourceAlreadyExistsException("Visit already exists for appointment ${request.appointmentId}")
         }
@@ -39,9 +30,14 @@ class VisitService(
             notes = request.notes,
             completedByDoctorId = doctorId,
         )
-        appointment.status = AppointmentStatus.COMPLETED
-        appointmentRepository.save(appointment)
         val savedVisit = visitRepository.save(visit)
+        applicationEventPublisher.publishEvent(
+            VisitCompletedEvent(
+                appointmentId = request.appointmentId,
+                visitId = savedVisit.id!!,
+                completedAt = savedVisit.completedAt!!
+            )
+        )
 
         return visitRepository.findVisitResponseById(savedVisit.id!!)
             .orElseThrow { ResourceNotFoundException("Visit not found with ID: ${savedVisit.id}") }

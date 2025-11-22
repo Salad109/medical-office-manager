@@ -9,10 +9,13 @@ import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExis
 import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.Role
 import io.salad109.medicalofficemanager.users.UserManagement
+import io.salad109.medicalofficemanager.visits.VisitCompletedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.event.TransactionPhase
+import org.springframework.transaction.event.TransactionalEventListener
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -160,5 +163,19 @@ class AppointmentService(
 
         val minutesSinceStart = Duration.between(OFFICE_START, time).toMinutes()
         return minutesSinceStart % SLOT_DURATION_MINUTES == 0L
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    fun handleVisitCompletedEvent(event: VisitCompletedEvent) {
+        val appointment = appointmentRepository.findById(event.appointmentId)
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: ${event.appointmentId}") }
+
+        if (appointment.status == AppointmentStatus.COMPLETED) {
+            throw InvalidAppointmentStatusException("Appointment is already marked as COMPLETED")
+        }
+
+        appointment.status = AppointmentStatus.COMPLETED
+        appointmentRepository.save(appointment)
+        log.info("Appointment marked as completed due to completion of visit ID=${event.appointmentId}")
     }
 }
