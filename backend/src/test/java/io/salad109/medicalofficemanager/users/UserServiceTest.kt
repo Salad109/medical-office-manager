@@ -1,9 +1,12 @@
 package io.salad109.medicalofficemanager.users
 
-import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
-import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
-import io.salad109.medicalofficemanager.users.dto.UserCreationRequest
-import io.salad109.medicalofficemanager.users.dto.UserUpdateRequest
+import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
+import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
+import io.salad109.medicalofficemanager.users.internal.User
+import io.salad109.medicalofficemanager.users.internal.UserRepository
+import io.salad109.medicalofficemanager.users.internal.UserService
+import io.salad109.medicalofficemanager.users.internal.dto.UserCreationRequest
+import io.salad109.medicalofficemanager.users.internal.dto.UserUpdateRequest
 import io.salad109.medicalofficemanager.visits.VisitManagement
 import jakarta.validation.ValidationException
 import org.assertj.core.api.Assertions.assertThat

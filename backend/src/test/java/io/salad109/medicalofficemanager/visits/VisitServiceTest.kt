@@ -1,16 +1,14 @@
 package io.salad109.medicalofficemanager.visits
 
-import io.salad109.medicalofficemanager.appointments.Appointment
-import io.salad109.medicalofficemanager.appointments.AppointmentRepository
-import io.salad109.medicalofficemanager.appointments.AppointmentStatus
-import io.salad109.medicalofficemanager.exception.exceptions.InvalidAppointmentStatusException
-import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
-import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
+import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
+import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.Role
-import io.salad109.medicalofficemanager.users.User
-import io.salad109.medicalofficemanager.visits.dto.VisitCreationRequest
-import io.salad109.medicalofficemanager.visits.dto.VisitResponse
-import io.salad109.medicalofficemanager.visits.dto.VisitUpdateRequest
+import io.salad109.medicalofficemanager.users.internal.User
+import io.salad109.medicalofficemanager.visits.internal.Visit
+import io.salad109.medicalofficemanager.visits.internal.VisitRepository
+import io.salad109.medicalofficemanager.visits.internal.VisitService
+import io.salad109.medicalofficemanager.visits.internal.dto.VisitCreationRequest
+import io.salad109.medicalofficemanager.visits.internal.dto.VisitUpdateRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -36,14 +34,16 @@ class VisitServiceTest {
     private lateinit var visitRepository: VisitRepository
 
     @Mock
-    private lateinit var appointmentRepository: AppointmentRepository
+    private lateinit var applicationEventPublisher: org.springframework.context.ApplicationEventPublisher
 
     @InjectMocks
     private lateinit var visitService: VisitService
 
     private lateinit var patientUser: User
     private lateinit var doctorUser: User
-    private lateinit var testAppointment: Appointment
+    private val testAppointmentId = 1L
+    private val testAppointmentDate = LocalDate.now().plusDays(1)
+    private val testAppointmentTime = LocalTime.of(9, 0)
 
     @BeforeEach
     fun setUp() {
@@ -68,15 +68,6 @@ class VisitServiceTest {
             phoneNumber = "987654321",
             role = Role.DOCTOR
         )
-
-        // Create test appointment
-        testAppointment = Appointment(
-            id = 1L,
-            patientId = patientUser.id!!,
-            appointmentDate = LocalDate.now().plusDays(1),
-            appointmentTime = LocalTime.of(9, 0),
-            status = AppointmentStatus.SCHEDULED
-        )
     }
 
     @Nested
@@ -89,9 +80,9 @@ class VisitServiceTest {
                 1L,
                 "Visit notes.",
                 LocalDateTime.now(),
-                testAppointment.id!!,
-                testAppointment.appointmentDate,
-                testAppointment.appointmentTime,
+                testAppointmentId,
+                testAppointmentDate,
+                testAppointmentTime,
                 doctorUser.id!!,
                 doctorUser.firstName,
                 doctorUser.lastName,
@@ -116,32 +107,31 @@ class VisitServiceTest {
     inner class VisitCompletionTests {
 
         @Test
-        fun `should mark visit as completed`() {
+        fun `should create visit and publish event`() {
             // Given
             val visitCreationRequest = VisitCreationRequest(
-                testAppointment.id!!,
+                testAppointmentId,
                 "Test notes."
             )
-            whenever(appointmentRepository.findById(testAppointment.id!!))
-                .thenReturn(Optional.of(testAppointment))
-            whenever(visitRepository.existsByAppointmentId(testAppointment.id!!))
+            val now = LocalDateTime.now()
+            whenever(visitRepository.existsByAppointmentId(testAppointmentId))
                 .thenReturn(false)
-            whenever(appointmentRepository.save(any())).thenAnswer { invocation ->
-                invocation.arguments[0]
-            }
             whenever(visitRepository.save(any())).thenAnswer { invocation ->
-                (invocation.arguments[0] as Visit).apply { id = 1L }
+                (invocation.arguments[0] as Visit).apply {
+                    id = 1L
+                    completedAt = now
+                }
             }
-            whenever(visitRepository.findVisitResponseById(any()))
+            whenever(visitRepository.findVisitResponseById(1L))
                 .thenReturn(
                     Optional.of(
                         VisitResponse(
                             1L,
                             "Test notes.",
-                            LocalDateTime.now(),
-                            testAppointment.id!!,
-                            testAppointment.appointmentDate,
-                            testAppointment.appointmentTime,
+                            now,
+                            testAppointmentId,
+                            testAppointmentDate,
+                            testAppointmentTime,
                             doctorUser.id!!,
                             doctorUser.firstName,
                             doctorUser.lastName,
@@ -155,67 +145,36 @@ class VisitServiceTest {
             // When
             val visitResponse = visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!)
 
-            // Then
-            verify(appointmentRepository).save(
-                check {
-                    assertThat(it.status).isEqualTo(AppointmentStatus.COMPLETED)
-                }
-            )
+            // Then - verify visit was saved
             verify(visitRepository).save(
                 check {
-                    assertThat(it.appointmentId).isEqualTo(testAppointment.id)
+                    assertThat(it.appointmentId).isEqualTo(testAppointmentId)
                     assertThat(it.notes).isEqualTo("Test notes.")
                     assertThat(it.completedByDoctorId).isEqualTo(doctorUser.id)
                 }
             )
-            assertThat(visitResponse.appointmentId).isEqualTo(testAppointment.id)
+
+            verify(applicationEventPublisher).publishEvent(
+                check<VisitCompletedEvent> {
+                    assertThat(it.appointmentId).isEqualTo(testAppointmentId)
+                    assertThat(it.visitId).isEqualTo(1L)
+                    assertThat(it.completedAt).isEqualTo(now)
+                }
+            )
+
+            assertThat(visitResponse.appointmentId).isEqualTo(testAppointmentId)
             assertThat(visitResponse.notes).isEqualTo("Test notes.")
             assertThat(visitResponse.doctorId).isEqualTo(doctorUser.id)
-        }
-
-        @Test
-        fun `should throw exception when appointment not found`() {
-            // Given
-            val visitCreationRequest = VisitCreationRequest(
-                999L,
-                "Test notes."
-            )
-            whenever(appointmentRepository.findById(999L))
-                .thenReturn(Optional.empty())
-
-            // Then
-            assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
-                .isInstanceOf(ResourceNotFoundException::class.java)
-                .hasMessageContaining("Appointment not found")
-        }
-
-        @Test
-        fun `should throw exception when appointment status is already completed`() {
-            // Given
-            val visitCreationRequest = VisitCreationRequest(
-                testAppointment.id!!,
-                "Test notes."
-            )
-            testAppointment.status = AppointmentStatus.COMPLETED
-            whenever(appointmentRepository.findById(testAppointment.id!!))
-                .thenReturn(Optional.of(testAppointment))
-
-            // Then
-            assertThatThrownBy { visitService.markVisitAsCompleted(visitCreationRequest, doctorUser.id!!) }
-                .isInstanceOf(InvalidAppointmentStatusException::class.java)
-                .hasMessageContaining("Only scheduled or no-show appointments can be marked as completed")
         }
 
         @Test
         fun `should throw exception when visit already exists for appointment`() {
             // Given
             val visitCreationRequest = VisitCreationRequest(
-                testAppointment.id!!,
+                testAppointmentId,
                 "Test notes."
             )
-            whenever(appointmentRepository.findById(testAppointment.id!!))
-                .thenReturn(Optional.of(testAppointment))
-            whenever(visitRepository.existsByAppointmentId(testAppointment.id!!))
+            whenever(visitRepository.existsByAppointmentId(testAppointmentId))
                 .thenReturn(true)
 
             // Then
@@ -233,7 +192,7 @@ class VisitServiceTest {
             // Given
             val existingVisit = Visit(
                 id = 1L,
-                appointmentId = testAppointment.id!!,
+                appointmentId = testAppointmentId,
                 notes = "Old notes.",
                 completedByDoctorId = doctorUser.id!!
             )
@@ -252,9 +211,9 @@ class VisitServiceTest {
                             existingVisit.id!!,
                             "Updated notes.",
                             LocalDateTime.now(),
-                            testAppointment.id!!,
-                            testAppointment.appointmentDate,
-                            testAppointment.appointmentTime,
+                            testAppointmentId,
+                            testAppointmentDate,
+                            testAppointmentTime,
                             doctorUser.id!!,
                             doctorUser.firstName,
                             doctorUser.lastName,

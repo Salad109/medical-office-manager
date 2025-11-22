@@ -1,11 +1,15 @@
 package io.salad109.medicalofficemanager.appointments
 
-import io.salad109.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse
-import io.salad109.medicalofficemanager.appointments.dto.BookAppointmentRequest
-import io.salad109.medicalofficemanager.exception.exceptions.*
+import io.salad109.medicalofficemanager.appointments.internal.Appointment
+import io.salad109.medicalofficemanager.appointments.internal.AppointmentRepository
+import io.salad109.medicalofficemanager.appointments.internal.AppointmentService
+import io.salad109.medicalofficemanager.appointments.internal.AppointmentStatus
+import io.salad109.medicalofficemanager.appointments.internal.dto.AppointmentWithDetailsResponse
+import io.salad109.medicalofficemanager.appointments.internal.dto.BookAppointmentRequest
+import io.salad109.medicalofficemanager.exception.*
 import io.salad109.medicalofficemanager.users.Role
-import io.salad109.medicalofficemanager.users.User
 import io.salad109.medicalofficemanager.users.UserManagement
+import io.salad109.medicalofficemanager.users.internal.User
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach

@@ -1,5 +1,6 @@
 package io.salad109.medicalofficemanager.auth;
 
+import io.salad109.medicalofficemanager.auth.internal.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
