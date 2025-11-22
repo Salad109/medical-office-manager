@@ -1,5 +1,6 @@
 package io.salad109.medicalofficemanager.users
 
+import io.salad109.medicalofficemanager.exception.exceptions.InvalidRoleException
 import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
 import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.dto.UserCreationRequest
@@ -19,7 +20,7 @@ class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val visitRepository: VisitRepository
-) {
+) : UserManagement {
     private val log = LoggerFactory.getLogger(UserService::class.java)
 
     fun getAllUsers(pageable: Pageable): Page<UserResponse> {
@@ -118,4 +119,11 @@ class UserService(
     fun User.toResponse() = UserResponse(
         this.id, this.username, this.firstName, this.lastName, this.phoneNumber, this.pesel, this.role
     )
+
+    override fun validatePatient(patientId: Long) {
+        userRepository.findById(patientId)
+            .orElseThrow { ResourceNotFoundException("Patient with ID $patientId not found") }
+            .takeIf { it.role == Role.PATIENT }
+            ?: throw InvalidRoleException("User with ID $patientId is not a patient")
+    }
 }

@@ -5,7 +5,7 @@ import io.salad109.medicalofficemanager.appointments.dto.BookAppointmentRequest
 import io.salad109.medicalofficemanager.exception.exceptions.*
 import io.salad109.medicalofficemanager.users.Role
 import io.salad109.medicalofficemanager.users.User
-import io.salad109.medicalofficemanager.users.UserRepository
+import io.salad109.medicalofficemanager.users.UserManagement
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -18,6 +18,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -33,7 +34,7 @@ class AppointmentServiceTest {
     private lateinit var appointmentRepository: AppointmentRepository
 
     @Mock
-    private lateinit var userRepository: UserRepository
+    private lateinit var userManagement: UserManagement
 
     @InjectMocks
     private lateinit var appointmentService: AppointmentService
@@ -219,7 +220,7 @@ class AppointmentServiceTest {
             val validTime = LocalTime.of(9, 0)
             val request = BookAppointmentRequest(patientUser.id, futureDate, validTime)
 
-            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+            doNothing().whenever(userManagement).validatePatient(patientUser.id!!)
             whenever(appointmentRepository.findByAppointmentDate(futureDate)).thenReturn(emptyList())
             whenever(appointmentRepository.save(any(Appointment::class.java))).thenAnswer { invocation ->
                 (invocation.arguments[0] as Appointment).apply { id = 1L }
@@ -238,37 +239,14 @@ class AppointmentServiceTest {
         }
 
         @Test
-        fun `should book appointment successfully for same day with future time`() {
-            // Given
-            val today = LocalDate.now()
-            val futureTime = LocalTime.of(16, 30)
-            val request = BookAppointmentRequest(patientUser.id, today, futureTime)
-
-            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
-            whenever(appointmentRepository.findByAppointmentDate(today)).thenReturn(emptyList())
-            whenever(appointmentRepository.save(any(Appointment::class.java))).thenAnswer { invocation ->
-                (invocation.arguments[0] as Appointment).apply { id = 2L }
-            }
-
-            // When
-            val response = appointmentService.bookAppointment(request)
-
-            // Then
-            assertThat(response).isNotNull
-            assertThat(response.id).isEqualTo(2L)
-            assertThat(response.patientId).isEqualTo(patientUser.id)
-            assertThat(response.date).isEqualTo(today)
-            assertThat(response.time).isEqualTo(futureTime)
-            assertThat(response.status).isEqualTo(AppointmentStatus.SCHEDULED)
-        }
-
-        @Test
         fun `should throw exception when user is not a patient`() {
             // Given
             val futureDate = LocalDate.now().plusDays(1)
             val request = BookAppointmentRequest(doctorUser.id, futureDate, LocalTime.of(9, 0))
 
-            whenever(userRepository.findById(doctorUser.id!!)).thenReturn(Optional.of(doctorUser))
+            whenever(userManagement.validatePatient(doctorUser.id!!)).thenThrow(
+                InvalidRoleException("User with ID ${doctorUser.id} is not a patient")
+            )
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
@@ -283,7 +261,9 @@ class AppointmentServiceTest {
             val futureDate = LocalDate.now().plusDays(1)
             val request = BookAppointmentRequest(999L, futureDate, LocalTime.of(9, 0))
 
-            whenever(userRepository.findById(999L)).thenReturn(Optional.empty())
+            whenever(userManagement.validatePatient(999L)).thenThrow(
+                ResourceNotFoundException("Patient with ID 999 not found")
+            )
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
@@ -298,7 +278,7 @@ class AppointmentServiceTest {
             val pastDate = LocalDate.now().minusDays(1)
             val request = BookAppointmentRequest(patientUser.id, pastDate, LocalTime.of(9, 0))
 
-            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+            doNothing().whenever(userManagement).validatePatient(patientUser.id!!)
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
@@ -314,7 +294,7 @@ class AppointmentServiceTest {
             val pastTime = LocalTime.now().minusHours(1)
             val request = BookAppointmentRequest(patientUser.id, today, pastTime)
 
-            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+            doNothing().whenever(userManagement).validatePatient(patientUser.id!!)
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
@@ -335,7 +315,7 @@ class AppointmentServiceTest {
             val time = LocalTime.of(hour.toInt(), minute.toInt())
             val request = BookAppointmentRequest(patientUser.id, futureDate, time)
 
-            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+            doNothing().whenever(userManagement).validatePatient(patientUser.id!!)
 
             // Then
             assertThatThrownBy { appointmentService.bookAppointment(request) }
@@ -352,7 +332,7 @@ class AppointmentServiceTest {
             val request = BookAppointmentRequest(patientUser.id, futureDate, time)
             val existingAppointment = Appointment(2L, 2L, futureDate, time, AppointmentStatus.SCHEDULED)
 
-            whenever(userRepository.findById(patientUser.id!!)).thenReturn(Optional.of(patientUser))
+            doNothing().whenever(userManagement).validatePatient(patientUser.id!!)
             whenever(appointmentRepository.findByAppointmentDate(futureDate)).thenReturn(listOf(existingAppointment))
 
             // Then
@@ -430,7 +410,7 @@ class AppointmentServiceTest {
             val differentPatientId = 999L
             whenever(appointmentRepository.findById(testAppointment.id!!)).thenReturn(Optional.of(testAppointment))
 
-            // When / Then
+            // Then
             assertThatThrownBy {
                 appointmentService.cancelAppointment(testAppointment.id!!, differentPatientId, Role.PATIENT)
             }

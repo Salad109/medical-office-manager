@@ -3,9 +3,12 @@ package io.salad109.medicalofficemanager.appointments
 import io.salad109.medicalofficemanager.appointments.dto.AppointmentResponse
 import io.salad109.medicalofficemanager.appointments.dto.AppointmentWithDetailsResponse
 import io.salad109.medicalofficemanager.appointments.dto.BookAppointmentRequest
-import io.salad109.medicalofficemanager.exception.exceptions.*
+import io.salad109.medicalofficemanager.exception.exceptions.InvalidAppointmentStatusException
+import io.salad109.medicalofficemanager.exception.exceptions.InvalidTimeSlotException
+import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExistsException
+import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.Role
-import io.salad109.medicalofficemanager.users.UserRepository
+import io.salad109.medicalofficemanager.users.UserManagement
 import org.slf4j.LoggerFactory
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.stereotype.Service
@@ -17,7 +20,7 @@ import java.time.LocalTime
 @Service
 class AppointmentService(
     private val appointmentRepository: AppointmentRepository,
-    private val userRepository: UserRepository
+    private val userManagement: UserManagement,
 ) {
     private val log = LoggerFactory.getLogger(AppointmentService::class.java)
 
@@ -59,11 +62,7 @@ class AppointmentService(
 
     @Transactional
     fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
-        userRepository.findById(request.patientId)
-            .orElseThrow { ResourceNotFoundException("Patient with ID ${request.patientId} not found") }
-            .takeIf { it.role == Role.PATIENT }
-            ?: throw InvalidRoleException("User with ID ${request.patientId} is not a patient")
-
+        userManagement.validatePatient(request.patientId)
 
         val now = LocalDate.now()
         val currentTime = LocalTime.now()
