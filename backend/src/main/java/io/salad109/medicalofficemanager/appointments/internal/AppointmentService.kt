@@ -1,0 +1,181 @@
+package io.salad109.medicalofficemanager.appointments.internal
+
+import io.salad109.medicalofficemanager.appointments.internal.dto.AppointmentResponse
+import io.salad109.medicalofficemanager.appointments.internal.dto.AppointmentWithDetailsResponse
+import io.salad109.medicalofficemanager.appointments.internal.dto.BookAppointmentRequest
+import io.salad109.medicalofficemanager.exception.InvalidAppointmentStatusException
+import io.salad109.medicalofficemanager.exception.InvalidTimeSlotException
+import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
+import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
+import io.salad109.medicalofficemanager.users.Role
+import io.salad109.medicalofficemanager.users.UserManagement
+import io.salad109.medicalofficemanager.visits.VisitCompletedEvent
+import org.slf4j.LoggerFactory
+import org.springframework.security.access.AccessDeniedException
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.event.TransactionPhase
+import org.springframework.transaction.event.TransactionalEventListener
+import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalTime
+
+@Service
+class AppointmentService(
+    private val appointmentRepository: AppointmentRepository,
+    private val userManagement: UserManagement,
+) {
+    private val log = LoggerFactory.getLogger(AppointmentService::class.java)
+
+    companion object {
+        private val OFFICE_START = LocalTime.of(9, 0)
+        private val OFFICE_END = LocalTime.of(17, 0)
+        private const val SLOT_DURATION_MINUTES = 30L
+    }
+
+    fun getAvailableSlots(date: LocalDate): List<String> {
+        // Get existing appointments
+        val existingAppointments: List<Appointment> = appointmentRepository.findByAppointmentDate(date)
+        val bookedTimes = existingAppointments.map { it.appointmentTime }.toSet()
+
+        // Generate all possible slots
+        val allSlots = mutableListOf<LocalTime>()
+        var currentTime = OFFICE_START
+        while (currentTime.isBefore(OFFICE_END)) {
+            allSlots.add(currentTime)
+            currentTime = currentTime.plusMinutes(SLOT_DURATION_MINUTES)
+        }
+
+        // Subtract booked times from all slots
+        return allSlots
+            .filterNot { it in bookedTimes }
+            .map { it.toString() }
+            .also { log.debug("Available slots on {}: {}", date, it) }
+    }
+
+    fun getAppointmentsWithDetailsByDate(date: LocalDate): List<AppointmentWithDetailsResponse> {
+        return appointmentRepository.findAppointmentsWithDetailsByDate(date)
+            .also { log.debug("Fetched {} appointments with details for date {}", it.size, date) }
+    }
+
+    fun getAppointmentsByPatientId(patientId: Long): List<AppointmentWithDetailsResponse> {
+        return appointmentRepository.findAppointmentsByPatientId(patientId)
+            .also { log.debug("Fetched {} appointments for patient {}", it.size, patientId) }
+    }
+
+    @Transactional
+    fun bookAppointment(request: BookAppointmentRequest): AppointmentResponse {
+        userManagement.validatePatient(request.patientId)
+
+        val now = LocalDate.now()
+        val currentTime = LocalTime.now()
+
+        if (request.date.isBefore(now) || (request.date.isEqual(now) && request.time.isBefore(currentTime))) {
+            throw InvalidTimeSlotException("Cannot book appointment in the past")
+        }
+
+        if (!request.isValidTimeSlot()) {
+            throw InvalidTimeSlotException(
+                "Invalid time slot. Must be ${SLOT_DURATION_MINUTES}-minute interval between $OFFICE_START and $OFFICE_END"
+            )
+        }
+
+        // Check slot availability
+        val existingAppointments: List<Appointment> = appointmentRepository.findByAppointmentDate(request.date)
+        val bookedTimes = existingAppointments.map { it.appointmentTime }.toSet()
+        if (request.time in bookedTimes) {
+            throw ResourceAlreadyExistsException(
+                "Time slot ${request.time} on ${request.date} is already booked"
+            )
+        }
+
+        // Create appointment
+        val appointment = Appointment(
+            patientId = request.patientId,
+            appointmentDate = request.date,
+            appointmentTime = request.time,
+            status = AppointmentStatus.SCHEDULED
+        )
+
+        val savedAppointment = appointmentRepository.save(appointment)
+        log.info("Appointment booked: ID=${savedAppointment.id}, Patient=${request.patientId}, Date=${request.date}, Time=${request.time}")
+
+        return AppointmentResponse(
+            savedAppointment.id,
+            savedAppointment.patientId,
+            savedAppointment.appointmentDate,
+            savedAppointment.appointmentTime,
+            savedAppointment.status
+        )
+    }
+
+    @Transactional
+    fun markAsNoShow(appointmentId: Long): AppointmentResponse {
+        val appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: $appointmentId") }
+
+        if (appointment.status == AppointmentStatus.COMPLETED) {
+            throw InvalidAppointmentStatusException("Cannot mark completed appointment as no-show")
+        }
+
+        appointment.status = AppointmentStatus.NO_SHOW
+        val updatedAppointment = appointmentRepository.save(appointment)
+        log.info("Appointment marked as NO_SHOW: ID=$appointmentId")
+
+        return AppointmentResponse(
+            updatedAppointment.id,
+            updatedAppointment.patientId,
+            updatedAppointment.appointmentDate,
+            updatedAppointment.appointmentTime,
+            updatedAppointment.status
+        )
+    }
+
+    @Transactional
+    fun cancelAppointment(appointmentId: Long, currentUserId: Long, currentUserRole: Role) {
+        val appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: $appointmentId") }
+
+        // Check permissions
+        when (currentUserRole) {
+            Role.RECEPTIONIST -> {
+                // Receptionists can cancel any appointment
+            }
+
+            Role.DOCTOR -> throw AccessDeniedException("Doctors cannot cancel appointments")
+
+            Role.PATIENT -> {
+                if (appointment.patientId != currentUserId) {
+                    throw AccessDeniedException("Patients can only cancel their own appointments")
+                }
+            }
+        }
+
+        appointmentRepository.delete(appointment)
+        log.info("Appointment cancelled: ID=$appointmentId by user $currentUserId")
+    }
+
+    private fun BookAppointmentRequest.isValidTimeSlot(): Boolean {
+        val time = this.time
+        if (time.isBefore(OFFICE_START) || !time.isBefore(OFFICE_END)) {
+            return false
+        }
+
+        val minutesSinceStart = Duration.between(OFFICE_START, time).toMinutes()
+        return minutesSinceStart % SLOT_DURATION_MINUTES == 0L
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    fun handleVisitCompletedEvent(event: VisitCompletedEvent) {
+        val appointment = appointmentRepository.findById(event.appointmentId)
+            .orElseThrow { ResourceNotFoundException("Appointment not found with ID: ${event.appointmentId}") }
+
+        if (appointment.status == AppointmentStatus.COMPLETED) {
+            throw InvalidAppointmentStatusException("Appointment is already marked as COMPLETED")
+        }
+
+        appointment.status = AppointmentStatus.COMPLETED
+        appointmentRepository.save(appointment)
+        log.info("Appointment marked as completed due to completion of visit ID=${event.appointmentId}")
+    }
+}
