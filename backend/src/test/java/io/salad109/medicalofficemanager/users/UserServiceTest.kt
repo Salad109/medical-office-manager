@@ -4,7 +4,7 @@ import io.salad109.medicalofficemanager.exception.exceptions.ResourceAlreadyExis
 import io.salad109.medicalofficemanager.exception.exceptions.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.dto.UserCreationRequest
 import io.salad109.medicalofficemanager.users.dto.UserUpdateRequest
-import io.salad109.medicalofficemanager.visits.VisitRepository
+import io.salad109.medicalofficemanager.visits.VisitManagement
 import jakarta.validation.ValidationException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -31,7 +31,7 @@ class UserServiceTest {
     private lateinit var userRepository: UserRepository
 
     @Mock
-    private lateinit var visitRepository: VisitRepository
+    private lateinit var visitManagement: VisitManagement
 
     private val passwordEncoder: PasswordEncoder = BCryptPasswordEncoder()
 
@@ -42,7 +42,7 @@ class UserServiceTest {
     @BeforeEach
     fun setUp() {
         // Manually instantiate UserService with real PasswordEncoder
-        userService = UserService(userRepository, passwordEncoder, visitRepository)
+        userService = UserService(userRepository, passwordEncoder, visitManagement)
 
         user = User(
             id = 1L,
@@ -122,7 +122,7 @@ class UserServiceTest {
         fun `should get patient with visits`() {
             // Given
             whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
-            whenever(visitRepository.findVisitResponsesByPatientId(1L)).thenReturn(emptyList())
+            whenever(visitManagement.findVisitResponsesByPatient(1L)).thenReturn(emptyList())
 
             // When
             val patientWithVisits = userService.getPatientWithVisits(1L)

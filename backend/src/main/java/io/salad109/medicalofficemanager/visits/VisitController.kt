@@ -20,7 +20,7 @@ class VisitController(
     @PreAuthorize("hasRole('DOCTOR')")
     @GetMapping("/patient/{id}")
     fun getVisitsByPatient(@PathVariable id: Long): ResponseEntity<List<VisitResponse>> {
-        val visits = visitService.getVisitsByPatient(id)
+        val visits = visitService.findVisitResponsesByPatient(id)
         return ResponseEntity.ok(visits)
     }
 

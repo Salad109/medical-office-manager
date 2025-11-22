@@ -15,9 +15,9 @@ import org.springframework.transaction.annotation.Transactional
 class VisitService(
     private val visitRepository: VisitRepository,
     private val appointmentRepository: AppointmentRepository,
-) {
+) : VisitManagement {
 
-    fun getVisitsByPatient(patientId: Long): List<VisitResponse> {
+    override fun findVisitResponsesByPatient(patientId: Long): List<VisitResponse> {
         return visitRepository.findVisitResponsesByPatientId(patientId)
     }
 

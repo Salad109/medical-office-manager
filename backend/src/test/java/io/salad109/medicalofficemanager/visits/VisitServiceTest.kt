@@ -103,7 +103,7 @@ class VisitServiceTest {
                 .thenReturn(listOf(visitResponse))
 
             // When
-            val visits = visitService.getVisitsByPatient(patientUser.id!!)
+            val visits = visitService.findVisitResponsesByPatient(patientUser.id!!)
 
             // Then
             assertThat(visits).hasSize(1)

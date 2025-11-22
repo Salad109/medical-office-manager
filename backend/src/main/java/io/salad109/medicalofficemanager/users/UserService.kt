@@ -7,7 +7,7 @@ import io.salad109.medicalofficemanager.users.dto.UserCreationRequest
 import io.salad109.medicalofficemanager.users.dto.UserResponse
 import io.salad109.medicalofficemanager.users.dto.UserResponseWithVisits
 import io.salad109.medicalofficemanager.users.dto.UserUpdateRequest
-import io.salad109.medicalofficemanager.visits.VisitRepository
+import io.salad109.medicalofficemanager.visits.VisitManagement
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service
 class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
-    private val visitRepository: VisitRepository
+    private val visitManagement: VisitManagement
 ) : UserManagement {
     private val log = LoggerFactory.getLogger(UserService::class.java)
 
@@ -48,7 +48,7 @@ class UserService(
         val user = userRepository.findById(patientId)
             .orElseThrow { ResourceNotFoundException("User with ID $patientId not found") }
 
-        val visits = visitRepository.findVisitResponsesByPatientId(patientId)
+        val visits = visitManagement.findVisitResponsesByPatient(patientId)
 
         log.debug("Fetched patient with ID {} and {} visits", patientId, visits.size)
         return UserResponseWithVisits(user.toResponse(), visits)
