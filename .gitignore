@@ -16,6 +16,7 @@ Thumbs.db
 backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 backend/HELP.md
+backend/nul
 
 # Frontend specific (Node.js)
 frontend/node_modules/

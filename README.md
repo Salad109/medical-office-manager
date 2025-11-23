@@ -50,12 +50,13 @@ receptionists. Built with Spring Boot and React in a monorepo architecture.
 medical-office-manager/
 ├── backend/                  # Spring Boot application
 │   ├── src/main/java/io/salad109/medicalofficemanager/
-│   │   ├── auth/            # Authentication & JWT services
-│   │   ├── users/           # User management
 │   │   ├── appointments/    # Appointment scheduling
-│   │   ├── visits/          # Medical visit records
-│   │   ├── audit/           # Audit logging for RODO
-│   │   └── config/          # Security & CORS configuration
+│   │   ├── audit/           # Audit logging
+│   │   ├── auth/            # Authentication & JWT services
+│   │   ├── exception/       # Exception classes & handling
+│   │   ├── config/          # Security & CORS configuration
+│   │   ├── users/           # User management
+│   │   └──visits/           # Medical visit records
 │   └── src/main/resources/
 │       └── db/migration/    # Flyway database migrations
 ├── frontend/                 # React application
