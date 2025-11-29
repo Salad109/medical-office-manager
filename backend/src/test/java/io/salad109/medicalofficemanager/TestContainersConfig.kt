@@ -17,5 +17,6 @@ class TestContainersConfig {
             .withUsername("test")
             .withPassword("test")
             .withCommand("mysqld --log-bin-trust-function-creators=1")
+            .withTmpFs(mapOf("/var/lib/mysql" to "rw"))
     }
 }

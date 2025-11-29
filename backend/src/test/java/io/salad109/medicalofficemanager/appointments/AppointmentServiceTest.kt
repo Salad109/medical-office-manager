@@ -10,6 +10,7 @@ import io.salad109.medicalofficemanager.exception.*
 import io.salad109.medicalofficemanager.users.Role
 import io.salad109.medicalofficemanager.users.UserManagement
 import io.salad109.medicalofficemanager.users.internal.User
+import io.salad109.medicalofficemanager.visits.VisitCompletedEvent
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -22,12 +23,10 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.doNothing
-import org.mockito.kotlin.never
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
 import org.springframework.security.access.AccessDeniedException
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.*
 
@@ -462,6 +461,81 @@ class AppointmentServiceTest {
                 .isInstanceOf(ResourceNotFoundException::class.java)
                 .hasMessageContaining("Appointment not found")
             verify(appointmentRepository, never()).delete(any())
+        }
+    }
+
+    @Nested
+    inner class VisitEventHandlerTests {
+
+        @Test
+        fun `should handle visit completion event successfully`() {
+            // Given
+            val event = VisitCompletedEvent(
+                appointmentId = testAppointment.id!!,
+                visitId = 1L,
+                completedAt = LocalDateTime.of(
+                    testAppointment.appointmentDate,
+                    testAppointment.appointmentTime
+                )
+            )
+            whenever(appointmentRepository.findById(testAppointment.id!!)).thenReturn(Optional.of(testAppointment))
+            whenever(appointmentRepository.save(any(Appointment::class.java))).thenAnswer { invocation -> invocation.arguments[0] }
+
+            // When
+            appointmentService.handleVisitCompletedEvent(event)
+
+            // Then
+            verify(appointmentRepository).save(check {
+                assertThat(it.id).isEqualTo(testAppointment.id)
+                assertThat(it.status).isEqualTo(AppointmentStatus.COMPLETED)
+            })
+        }
+
+        @Test
+        fun `should throw exception when appointment for visit event does not exist`() {
+            // Given
+            val event = VisitCompletedEvent(
+                appointmentId = 999L,
+                visitId = 1L,
+                completedAt = LocalDateTime.of(
+                    testAppointment.appointmentDate,
+                    testAppointment.appointmentTime
+                )
+            )
+            whenever(appointmentRepository.findById(999L)).thenReturn(Optional.empty())
+
+            // Then
+            assertThatThrownBy {
+                appointmentService.handleVisitCompletedEvent(event)
+            }.isInstanceOf(ResourceNotFoundException::class.java)
+                .hasMessageContaining("Appointment not found")
+            verify(appointmentRepository, never()).save(any())
+        }
+
+        @Test
+        fun `should throw exception when appointment is already completed`() {
+            // Given
+            val completedAppointment = testAppointment.apply { status = AppointmentStatus.COMPLETED }
+            val event = VisitCompletedEvent(
+                appointmentId = completedAppointment.id!!,
+                visitId = 1L,
+                completedAt = LocalDateTime.of(
+                    completedAppointment.appointmentDate,
+                    completedAppointment.appointmentTime
+                )
+            )
+            whenever(appointmentRepository.findById(completedAppointment.id!!)).thenReturn(
+                Optional.of(
+                    completedAppointment
+                )
+            )
+
+            // Then
+            assertThatThrownBy {
+                appointmentService.handleVisitCompletedEvent(event)
+            }.isInstanceOf(InvalidAppointmentStatusException::class.java)
+                .hasMessageContaining("already marked as COMPLETED")
+            verify(appointmentRepository, never()).save(any())
         }
     }
 }

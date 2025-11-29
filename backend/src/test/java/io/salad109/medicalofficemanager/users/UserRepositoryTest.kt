@@ -14,7 +14,7 @@ import org.springframework.data.domain.PageRequest
 @DataJpaTest
 @Import(TestContainersConfig::class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserRepositoryIntegrationTest {
+class UserRepositoryTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository

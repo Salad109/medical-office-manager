@@ -1,5 +1,6 @@
 package io.salad109.medicalofficemanager.users
 
+import io.salad109.medicalofficemanager.exception.InvalidRoleException
 import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
 import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.internal.User
@@ -14,6 +15,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mock
@@ -342,6 +344,72 @@ class UserServiceTest {
                 userService.updateUser(1L, request)
             }.isInstanceOf(ValidationException::class.java)
                 .hasMessageContaining("PESEL is required for patients")
+        }
+    }
+
+    @Nested
+    inner class PatientValidationTests {
+
+        @Test
+        fun `should validate patient successfully`() {
+            // Given
+            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
+
+            // Then
+            assertDoesNotThrow { userService.validatePatient(1L) }
+        }
+
+        @Test
+        fun `should throw exception when validating non-existent patient`() {
+            // Given
+            whenever(userRepository.findById(999L)).thenReturn(Optional.empty())
+
+            // Then
+            assertThatThrownBy {
+                userService.validatePatient(999L)
+            }.isInstanceOf(ResourceNotFoundException::class.java)
+                .hasMessageContaining("Patient with ID 999 not found")
+        }
+
+        @Test
+        fun `should throw exception when user is not a patient`() {
+            // Given
+            val doctorUser = user.apply { role = Role.DOCTOR }
+            whenever(userRepository.findById(2L)).thenReturn(Optional.of(doctorUser))
+
+            // Then
+            assertThatThrownBy {
+                userService.validatePatient(2L)
+            }.isInstanceOf(InvalidRoleException::class.java)
+                .hasMessageContaining("User with ID 2 is not a patient")
+        }
+    }
+
+    @Nested
+    inner class FindUserForAuthenticationTests {
+
+        @Test
+        fun `should find user by username for authentication`() {
+            // Given
+            whenever(userRepository.findByUsername("joeMama")).thenReturn(Optional.of(user))
+
+            // When
+            val foundUser = userService.findUserForAuthentication("joeMama")
+
+            // Then
+            assertThat(foundUser?.username).isEqualTo("joeMama")
+        }
+
+        @Test
+        fun `should return null when user not found by username for authentication`() {
+            // Given
+            whenever(userRepository.findByUsername("unknownUser")).thenReturn(Optional.empty())
+
+            // When
+            val foundUser = userService.findUserForAuthentication("unknownUser")
+
+            // Then
+            assertThat(foundUser).isNull()
         }
     }
 }
