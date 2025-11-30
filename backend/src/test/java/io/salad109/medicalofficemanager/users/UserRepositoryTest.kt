@@ -4,6 +4,7 @@ import io.salad109.medicalofficemanager.TestContainersConfig
 import io.salad109.medicalofficemanager.users.internal.User
 import io.salad109.medicalofficemanager.users.internal.UserRepository
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
@@ -18,6 +19,11 @@ class UserRepositoryTest {
 
     @Autowired
     private lateinit var userRepository: UserRepository
+
+    @BeforeEach
+    fun setUp() {
+        userRepository.deleteAll()
+    }
 
     @Test
     fun `should find users by role`() {
