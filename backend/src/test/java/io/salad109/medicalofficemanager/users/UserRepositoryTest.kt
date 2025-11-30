@@ -1,6 +1,7 @@
 package io.salad109.medicalofficemanager.users
 
 import io.salad109.medicalofficemanager.TestContainersConfig
+import io.salad109.medicalofficemanager.audit.internal.AuditLogRepository
 import io.salad109.medicalofficemanager.users.internal.User
 import io.salad109.medicalofficemanager.users.internal.UserRepository
 import org.assertj.core.api.Assertions.assertThat
@@ -20,8 +21,13 @@ class UserRepositoryTest {
     @Autowired
     private lateinit var userRepository: UserRepository
 
+    @Autowired
+    private lateinit var auditLogRepository: AuditLogRepository
+
     @BeforeEach
     fun setUp() {
+        auditLogRepository.deleteAll()
+        auditLogRepository.flush()
         userRepository.deleteAll()
         userRepository.flush()
     }

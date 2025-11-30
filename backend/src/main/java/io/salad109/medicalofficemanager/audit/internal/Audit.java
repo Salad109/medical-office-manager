@@ -1,4 +1,4 @@
-package io.salad109.medicalofficemanager.audit;
+package io.salad109.medicalofficemanager.audit.internal;
 
 import jakarta.persistence.*;
 import lombok.Getter;
