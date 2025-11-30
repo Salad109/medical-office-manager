@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.security.authentication.BadCredentialsException
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import java.time.Instant
@@ -84,6 +85,22 @@ class GlobalExceptionHandler {
         )
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse)
             .also { log.info("AccessDeniedException: $message") }
+    }
+
+    @ExceptionHandler(BadCredentialsException::class)
+    fun handleBadCredentialsException(
+        ex: BadCredentialsException, request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        val message = ex.message ?: "Invalid credentials"
+        val errorResponse = ErrorResponse(
+            timestamp = Instant.now().toString(),
+            status = HttpStatus.UNAUTHORIZED.value(),
+            error = HttpStatus.UNAUTHORIZED.reasonPhrase,
+            message = message,
+            path = request.requestURI
+        )
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse)
+            .also { log.info("BadCredentialsException: $message") }
     }
 
     @ExceptionHandler(Exception::class)

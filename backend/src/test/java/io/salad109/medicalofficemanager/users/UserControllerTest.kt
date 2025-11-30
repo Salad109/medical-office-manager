@@ -40,6 +40,7 @@ class UserControllerTest {
     @BeforeEach
     fun setUp() {
         userRepository.deleteAll()
+        userRepository.flush()
 
         patient = userRepository.save(
             User(

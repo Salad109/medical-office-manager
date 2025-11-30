@@ -9,14 +9,20 @@ import org.testcontainers.utility.DockerImageName
 @TestConfiguration(proxyBeanMethods = false)
 class TestContainersConfig {
 
-    @Bean
-    @ServiceConnection
-    fun mysqlContainer(): MySQLContainer {
-        return MySQLContainer(DockerImageName.parse("mysql:8.0.42"))
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test")
-            .withCommand("mysqld --log-bin-trust-function-creators=1")
-            .withTmpFs(mapOf("/var/lib/mysql" to "rw"))
+    companion object {
+        @Bean
+        @ServiceConnection
+        fun mysqlContainer(): MySQLContainer {
+            return MYSQL_CONTAINER
+        }
+
+        private val MYSQL_CONTAINER =
+            MySQLContainer(DockerImageName.parse("mysql:8.0.42"))
+                .withDatabaseName("testdb")
+                .withUsername("test")
+                .withPassword("test")
+                .withCommand("mysqld --log-bin-trust-function-creators=1")
+                .withTmpFs(mapOf("/var/lib/mysql" to "rw"))
+                .apply { start() }
     }
 }

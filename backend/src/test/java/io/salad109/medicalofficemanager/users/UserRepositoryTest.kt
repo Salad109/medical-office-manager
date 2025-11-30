@@ -23,6 +23,7 @@ class UserRepositoryTest {
     @BeforeEach
     fun setUp() {
         userRepository.deleteAll()
+        userRepository.flush()
     }
 
     @Test
