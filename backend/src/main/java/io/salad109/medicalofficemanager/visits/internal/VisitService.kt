@@ -35,17 +35,19 @@ class VisitService(
             throw ResourceAlreadyExistsException("Visit already exists for appointment ${request.appointmentId}")
         }
 
+        val now = java.time.LocalDateTime.now()
         val visit = Visit(
             appointmentId = request.appointmentId,
             notes = request.notes,
             completedByDoctorId = doctorId,
+            completedAt = now
         )
         val savedVisit = visitRepository.save(visit)
         applicationEventPublisher.publishEvent(
             VisitCompletedEvent(
                 appointmentId = request.appointmentId,
                 visitId = savedVisit.id!!,
-                completedAt = savedVisit.completedAt!!
+                completedAt = now
             )
         )
 
