@@ -91,8 +91,19 @@ export const updateVisitNotes = (visitId, notes) =>
 // Users API (Receptionist/Doctor)
 export const getUsers = () => apiFetch('/api/users');
 
-export const getPatientWithVisits = (patientId) =>
-    apiFetch(`/api/users/${patientId}/with-visits`);
+export const getUserById = (userId) =>
+    apiFetch(`/api/users/${userId}`);
+
+export const getPatientVisits = (patientId) =>
+    apiFetch(`/api/visits/patient/${patientId}`);
+
+export const getPatientWithVisits = async (patientId) => {
+    const [patient, visits] = await Promise.all([
+        getUserById(patientId),
+        getPatientVisits(patientId)
+    ]);
+    return { patient, visits };
+};
 
 export const createUser = (userData) =>
     apiFetch('/api/users', {
@@ -117,6 +128,8 @@ export default {
     createVisit,
     updateVisitNotes,
     getUsers,
+    getUserById,
+    getPatientVisits,
     getPatientWithVisits,
     createUser,
     updateUser,
