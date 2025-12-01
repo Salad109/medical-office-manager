@@ -1,8 +1,8 @@
 package io.salad109.medicalofficemanager.auth.internal
 
-import io.salad109.medicalofficemanager.auth.CustomUserDetails
 import io.salad109.medicalofficemanager.auth.dto.AuthResponse
 import io.salad109.medicalofficemanager.auth.dto.LoginRequest
+import io.salad109.medicalofficemanager.users.CustomUserDetails
 import org.slf4j.LoggerFactory
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken

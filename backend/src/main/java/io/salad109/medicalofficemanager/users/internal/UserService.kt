@@ -9,9 +9,7 @@ import io.salad109.medicalofficemanager.users.UserAuthentication
 import io.salad109.medicalofficemanager.users.UserManagement
 import io.salad109.medicalofficemanager.users.internal.dto.UserCreationRequest
 import io.salad109.medicalofficemanager.users.internal.dto.UserResponse
-import io.salad109.medicalofficemanager.users.internal.dto.UserResponseWithVisits
 import io.salad109.medicalofficemanager.users.internal.dto.UserUpdateRequest
-import io.salad109.medicalofficemanager.visits.VisitManagement
 import jakarta.validation.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -22,8 +20,7 @@ import org.springframework.stereotype.Service
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val passwordEncoder: PasswordEncoder,
-    private val visitManagement: VisitManagement
+    private val passwordEncoder: PasswordEncoder
 ) : UserManagement, UserAuthentication {
     private val log = LoggerFactory.getLogger(UserService::class.java)
 
@@ -46,16 +43,6 @@ class UserService(
         val searchQuery = "*${query}*"
         return userRepository.searchByName(searchQuery, pageable).map { it.toResponse() }
             .also { log.debug("Searched users with query '{}', found {} results", query, it.totalElements) }
-    }
-
-    fun getPatientWithVisits(patientId: Long): UserResponseWithVisits {
-        val user = userRepository.findById(patientId)
-            .orElseThrow { ResourceNotFoundException("User with ID $patientId not found") }
-
-        val visits = visitManagement.findVisitResponsesByPatient(patientId)
-
-        log.debug("Fetched patient with ID {} and {} visits", patientId, visits.size)
-        return UserResponseWithVisits(user.toResponse(), visits)
     }
 
     fun createUser(request: UserCreationRequest): UserResponse {

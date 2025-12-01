@@ -2,7 +2,6 @@ package io.salad109.medicalofficemanager.users.internal
 
 import io.salad109.medicalofficemanager.users.internal.dto.UserCreationRequest
 import io.salad109.medicalofficemanager.users.internal.dto.UserResponse
-import io.salad109.medicalofficemanager.users.internal.dto.UserResponseWithVisits
 import io.salad109.medicalofficemanager.users.internal.dto.UserUpdateRequest
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
@@ -29,13 +28,6 @@ class UserController(
     fun getUserById(@PathVariable id: Long): ResponseEntity<UserResponse> {
         val user = userService.getUserById(id)
         return ResponseEntity.ok(user)
-    }
-
-    @PreAuthorize("hasRole('DOCTOR')")
-    @GetMapping("/{id}/with-visits")
-    fun getPatientWithVisits(@PathVariable id: Long): ResponseEntity<UserResponseWithVisits> {
-        val patientWithVisits = userService.getPatientWithVisits(id)
-        return ResponseEntity.ok(patientWithVisits)
     }
 
     @PreAuthorize("hasRole('RECEPTIONIST') or hasRole('DOCTOR')")

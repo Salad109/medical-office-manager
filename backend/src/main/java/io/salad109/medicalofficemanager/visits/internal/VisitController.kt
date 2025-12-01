@@ -1,5 +1,6 @@
 package io.salad109.medicalofficemanager.visits.internal
 
+import io.salad109.medicalofficemanager.users.CustomUserDetails
 import io.salad109.medicalofficemanager.visits.VisitResponse
 import io.salad109.medicalofficemanager.visits.internal.dto.VisitCreationRequest
 import io.salad109.medicalofficemanager.visits.internal.dto.VisitUpdateRequest
@@ -7,7 +8,7 @@ import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.security.core.Authentication
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -27,11 +28,9 @@ class VisitController(
     @PostMapping
     fun markVisitAsCompleted(
         @Valid @RequestBody request: VisitCreationRequest,
-        authentication: Authentication
+        @AuthenticationPrincipal principal: CustomUserDetails
     ): ResponseEntity<VisitResponse> {
-        val principal = authentication.principal
-        val userId = principal.javaClass.getMethod("getUserId").invoke(principal) as Long
-        val visit = visitService.markVisitAsCompleted(request, userId)
+        val visit = visitService.markVisitAsCompleted(request, principal.userId)
         return ResponseEntity.status(HttpStatus.CREATED).body(visit)
     }
 

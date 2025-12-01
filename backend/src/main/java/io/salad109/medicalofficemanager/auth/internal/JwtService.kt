@@ -3,7 +3,7 @@ package io.salad109.medicalofficemanager.auth.internal
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
-import io.salad109.medicalofficemanager.auth.CustomUserDetails
+import io.salad109.medicalofficemanager.users.CustomUserDetails
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.stereotype.Service
 import java.util.*

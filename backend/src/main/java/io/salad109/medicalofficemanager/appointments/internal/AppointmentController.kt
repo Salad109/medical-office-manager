@@ -3,13 +3,13 @@ package io.salad109.medicalofficemanager.appointments.internal
 import io.salad109.medicalofficemanager.appointments.internal.dto.AppointmentResponse
 import io.salad109.medicalofficemanager.appointments.internal.dto.AppointmentWithDetailsResponse
 import io.salad109.medicalofficemanager.appointments.internal.dto.BookAppointmentRequest
-import io.salad109.medicalofficemanager.users.Role
+import io.salad109.medicalofficemanager.users.CustomUserDetails
 import jakarta.validation.Valid
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.security.core.Authentication
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
 
@@ -61,16 +61,12 @@ class AppointmentController(
     @DeleteMapping("/{id}")
     fun cancelAppointment(
         @PathVariable id: Long,
-        authentication: Authentication
+        @AuthenticationPrincipal principal: CustomUserDetails
     ): ResponseEntity<Unit> {
-        val principal = authentication.principal
-        val userId = principal.javaClass.getMethod("getUserId").invoke(principal) as Long
-        val role = principal.javaClass.getMethod("getRole").invoke(principal) as Role
-
         appointmentService.cancelAppointment(
             appointmentId = id,
-            currentUserId = userId,
-            currentUserRole = role
+            currentUserId = principal.userId,
+            currentUserRole = principal.role
         )
         return ResponseEntity.noContent().build()
     }

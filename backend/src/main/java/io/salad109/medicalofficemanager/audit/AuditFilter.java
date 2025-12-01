@@ -1,6 +1,6 @@
 package io.salad109.medicalofficemanager.audit;
 
-import io.salad109.medicalofficemanager.auth.CustomUserDetails;
+import io.salad109.medicalofficemanager.users.CustomUserDetails;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

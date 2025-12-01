@@ -3,7 +3,6 @@ package io.salad109.medicalofficemanager.visits.internal
 import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
 import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
 import io.salad109.medicalofficemanager.visits.VisitCompletedEvent
-import io.salad109.medicalofficemanager.visits.VisitManagement
 import io.salad109.medicalofficemanager.visits.VisitResponse
 import io.salad109.medicalofficemanager.visits.internal.dto.VisitCreationRequest
 import io.salad109.medicalofficemanager.visits.internal.dto.VisitUpdateRequest
@@ -15,9 +14,9 @@ import org.springframework.transaction.annotation.Transactional
 class VisitService(
     private val visitRepository: VisitRepository,
     private val applicationEventPublisher: ApplicationEventPublisher
-) : VisitManagement {
+) {
 
-    override fun findVisitResponsesByPatient(patientId: Long): List<VisitResponse> {
+    fun findVisitResponsesByPatient(patientId: Long): List<VisitResponse> {
         return visitRepository.findVisitResponsesByPatientId(patientId)
     }
 

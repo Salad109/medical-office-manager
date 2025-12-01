@@ -1,7 +1,5 @@
-package io.salad109.medicalofficemanager.auth
+package io.salad109.medicalofficemanager.users
 
-import io.salad109.medicalofficemanager.users.Role
-import io.salad109.medicalofficemanager.users.UserAuthData
 import org.springframework.security.core.CredentialsContainer
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority

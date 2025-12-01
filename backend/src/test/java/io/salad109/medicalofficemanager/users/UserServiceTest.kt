@@ -8,7 +8,6 @@ import io.salad109.medicalofficemanager.users.internal.UserRepository
 import io.salad109.medicalofficemanager.users.internal.UserService
 import io.salad109.medicalofficemanager.users.internal.dto.UserCreationRequest
 import io.salad109.medicalofficemanager.users.internal.dto.UserUpdateRequest
-import io.salad109.medicalofficemanager.visits.VisitManagement
 import jakarta.validation.ValidationException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -35,9 +34,6 @@ class UserServiceTest {
     @Mock
     private lateinit var userRepository: UserRepository
 
-    @Mock
-    private lateinit var visitManagement: VisitManagement
-
     private val passwordEncoder: PasswordEncoder = BCryptPasswordEncoder()
 
     private lateinit var userService: UserService
@@ -47,7 +43,7 @@ class UserServiceTest {
     @BeforeEach
     fun setUp() {
         // Manually instantiate UserService with real PasswordEncoder
-        userService = UserService(userRepository, passwordEncoder, visitManagement)
+        userService = UserService(userRepository, passwordEncoder)
 
         user = User(
             id = 1L,
@@ -121,32 +117,6 @@ class UserServiceTest {
 
             // Then
             assertThat(users).isEmpty()
-        }
-
-        @Test
-        fun `should get patient with visits`() {
-            // Given
-            whenever(userRepository.findById(1L)).thenReturn(Optional.of(user))
-            whenever(visitManagement.findVisitResponsesByPatient(1L)).thenReturn(emptyList())
-
-            // When
-            val patientWithVisits = userService.getPatientWithVisits(1L)
-
-            // Then
-            assertThat(patientWithVisits.patient.username).isEqualTo("joeMama")
-            assertThat(patientWithVisits.visits).isEmpty()
-        }
-
-        @Test
-        fun `should throw exception when getting patient with visits for non-existent user`() {
-            // Given
-            whenever(userRepository.findById(999L)).thenReturn(Optional.empty())
-
-            // Then
-            assertThatThrownBy {
-                userService.getPatientWithVisits(999L)
-            }.isInstanceOf(ResourceNotFoundException::class.java)
-                .hasMessageContaining("User with ID 999 not found")
         }
     }
 

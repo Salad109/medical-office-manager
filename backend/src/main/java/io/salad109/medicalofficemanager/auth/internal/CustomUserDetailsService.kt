@@ -1,6 +1,6 @@
 package io.salad109.medicalofficemanager.auth.internal
 
-import io.salad109.medicalofficemanager.auth.CustomUserDetails
+import io.salad109.medicalofficemanager.users.CustomUserDetails
 import io.salad109.medicalofficemanager.users.UserAuthentication
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
