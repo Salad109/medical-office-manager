@@ -54,7 +54,8 @@ class GlobalExceptionHandler {
         InvalidRoleException::class,
         ValidationException::class,
         InvalidTimeSlotException::class,
-        InvalidAppointmentStatusException::class
+        InvalidAppointmentStatusException::class,
+        IllegalArgumentException::class
     )
     fun handleValidationExceptions(
         ex: Exception, request: HttpServletRequest

@@ -17,6 +17,8 @@ receptionists. Built with Spring Boot and React in a monorepo architecture.
 - **Appointment Management**: Schedule, modify, and track medical appointments
 - **Visit Records**: Maintain comprehensive patient visit history
 - **JWT Authentication**: Secure stateless authentication with token-based sessions
+- **Modular Backend**: Clean separation of concerns with dedicated modules
+- **PDF Reporting**: Generate visit summaries in PDF format
 - **Responsive Design**: Modern React UI with Tailwind CSS
 
 ## Architecture

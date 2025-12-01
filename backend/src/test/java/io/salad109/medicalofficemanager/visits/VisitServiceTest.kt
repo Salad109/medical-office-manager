@@ -3,6 +3,7 @@ package io.salad109.medicalofficemanager.visits
 import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
 import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.Role
+import io.salad109.medicalofficemanager.users.UserManagement
 import io.salad109.medicalofficemanager.users.internal.User
 import io.salad109.medicalofficemanager.visits.internal.Visit
 import io.salad109.medicalofficemanager.visits.internal.VisitPdfGenerator
@@ -37,7 +38,11 @@ class VisitServiceTest {
     @Mock
     private lateinit var applicationEventPublisher: ApplicationEventPublisher
 
-    private val pdfGenerator: VisitPdfGenerator = VisitPdfGenerator()
+    @Mock
+    private lateinit var pdfGenerator: VisitPdfGenerator
+
+    @Mock
+    private lateinit var userManagement: UserManagement
 
     private lateinit var visitService: VisitService
 
@@ -49,7 +54,7 @@ class VisitServiceTest {
 
     @BeforeEach
     fun setUp() {
-        visitService = VisitService(visitRepository, applicationEventPublisher, pdfGenerator)
+        visitService = VisitService(visitRepository, applicationEventPublisher, pdfGenerator, userManagement)
 
         // Create test users
         patientUser = User(

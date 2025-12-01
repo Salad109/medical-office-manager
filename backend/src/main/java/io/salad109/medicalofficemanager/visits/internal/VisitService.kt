@@ -2,6 +2,7 @@ package io.salad109.medicalofficemanager.visits.internal
 
 import io.salad109.medicalofficemanager.exception.ResourceAlreadyExistsException
 import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
+import io.salad109.medicalofficemanager.users.UserManagement
 import io.salad109.medicalofficemanager.visits.VisitCompletedEvent
 import io.salad109.medicalofficemanager.visits.VisitResponse
 import io.salad109.medicalofficemanager.visits.internal.dto.VisitCreationRequest
@@ -14,7 +15,8 @@ import org.springframework.transaction.annotation.Transactional
 class VisitService(
     private val visitRepository: VisitRepository,
     private val applicationEventPublisher: ApplicationEventPublisher,
-    private val pdfGenerator: VisitPdfGenerator
+    private val pdfGenerator: VisitPdfGenerator,
+    private val userManagement: UserManagement
 ) {
 
     fun findVisitResponsesByPatient(patientId: Long): List<VisitResponse> {
@@ -22,10 +24,8 @@ class VisitService(
     }
 
     fun generatePatientVisitReport(patientId: Long): ByteArray {
+        userManagement.validatePatient(patientId)
         val visits = visitRepository.findVisitResponsesByPatientId(patientId)
-        if (visits.isEmpty()) {
-            throw ResourceNotFoundException("No visits found for patient with ID: $patientId")
-        }
         return pdfGenerator.generatePatientVisitReport(visits)
     }
 
