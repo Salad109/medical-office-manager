@@ -134,5 +134,74 @@ class AppointmentControllerTest : BaseControllerTest() {
             )
                 .hasStatus(HttpStatus.FORBIDDEN)
         }
+
+        @Test
+        fun `should throw exception when booking two appointments at the same time`() {
+            // Given
+            val token = loginAndGetToken("patient1", "patient-pass")
+            val appointmentDate = LocalDate.now().plusDays(5)
+            val appointmentTime = LocalTime.of(14, 0)
+            val bookAppointmentRequest = """
+                {
+                    "patientId": %d,
+                    "date": "%s",
+                    "time": "%s"
+                    }""".format(
+                patient1.id,
+                appointmentDate,
+                appointmentTime
+            )
+                .trimIndent()
+
+            // When
+            assertThat(
+                mockMvcTester
+                    .post()
+                    .uri("/api/appointments")
+                    .header("Authorization", "Bearer $token")
+                    .contentType("application/json")
+                    .content(bookAppointmentRequest)
+            )
+                .hasStatus(HttpStatus.CREATED)
+
+            // Then
+            assertThat(
+                mockMvcTester
+                    .post()
+                    .uri("/api/appointments")
+                    .header("Authorization", "Bearer $token")
+                    .contentType("application/json")
+                    .content(bookAppointmentRequest)
+            )
+                .hasStatus(HttpStatus.CONFLICT)
+        }
+
+        @Test
+        fun `should throw exception when booking appointment in the past`() {
+            // Given
+            val token = loginAndGetToken("patient1", "patient-pass")
+            val bookAppointmentRequest = """
+                {
+                    "patientId": %d,
+                    "date": "%s",
+                    "time": "%s"
+                    }""".format(
+                patient1.id,
+                LocalDate.now().minusDays(1),
+                LocalTime.of(9, 0)
+            )
+                .trimIndent()
+
+            // Then
+            assertThat(
+                mockMvcTester
+                    .post()
+                    .uri("/api/appointments")
+                    .header("Authorization", "Bearer $token")
+                    .contentType("application/json")
+                    .content(bookAppointmentRequest)
+            )
+                .hasStatus(HttpStatus.BAD_REQUEST)
+        }
     }
 }
