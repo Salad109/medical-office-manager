@@ -13,11 +13,20 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class VisitService(
     private val visitRepository: VisitRepository,
-    private val applicationEventPublisher: ApplicationEventPublisher
+    private val applicationEventPublisher: ApplicationEventPublisher,
+    private val pdfGenerator: VisitPdfGenerator
 ) {
 
     fun findVisitResponsesByPatient(patientId: Long): List<VisitResponse> {
         return visitRepository.findVisitResponsesByPatientId(patientId)
+    }
+
+    fun generatePatientVisitReport(patientId: Long): ByteArray {
+        val visits = visitRepository.findVisitResponsesByPatientId(patientId)
+        if (visits.isEmpty()) {
+            throw ResourceNotFoundException("No visits found for patient with ID: $patientId")
+        }
+        return pdfGenerator.generatePatientVisitReport(visits)
     }
 
     @Transactional
@@ -26,17 +35,19 @@ class VisitService(
             throw ResourceAlreadyExistsException("Visit already exists for appointment ${request.appointmentId}")
         }
 
+        val now = java.time.LocalDateTime.now()
         val visit = Visit(
             appointmentId = request.appointmentId,
             notes = request.notes,
             completedByDoctorId = doctorId,
+            completedAt = now
         )
         val savedVisit = visitRepository.save(visit)
         applicationEventPublisher.publishEvent(
             VisitCompletedEvent(
                 appointmentId = request.appointmentId,
                 visitId = savedVisit.id!!,
-                completedAt = savedVisit.completedAt!!
+                completedAt = now
             )
         )
 

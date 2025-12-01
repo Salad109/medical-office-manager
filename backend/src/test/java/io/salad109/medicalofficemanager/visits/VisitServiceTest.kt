@@ -5,6 +5,7 @@ import io.salad109.medicalofficemanager.exception.ResourceNotFoundException
 import io.salad109.medicalofficemanager.users.Role
 import io.salad109.medicalofficemanager.users.internal.User
 import io.salad109.medicalofficemanager.visits.internal.Visit
+import io.salad109.medicalofficemanager.visits.internal.VisitPdfGenerator
 import io.salad109.medicalofficemanager.visits.internal.VisitRepository
 import io.salad109.medicalofficemanager.visits.internal.VisitService
 import io.salad109.medicalofficemanager.visits.internal.dto.VisitCreationRequest
@@ -15,13 +16,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.check
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.context.ApplicationEventPublisher
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -34,9 +35,10 @@ class VisitServiceTest {
     private lateinit var visitRepository: VisitRepository
 
     @Mock
-    private lateinit var applicationEventPublisher: org.springframework.context.ApplicationEventPublisher
+    private lateinit var applicationEventPublisher: ApplicationEventPublisher
 
-    @InjectMocks
+    private val pdfGenerator: VisitPdfGenerator = VisitPdfGenerator()
+
     private lateinit var visitService: VisitService
 
     private lateinit var patientUser: User
@@ -47,6 +49,8 @@ class VisitServiceTest {
 
     @BeforeEach
     fun setUp() {
+        visitService = VisitService(visitRepository, applicationEventPublisher, pdfGenerator)
+
         // Create test users
         patientUser = User(
             id = 1L,
@@ -158,7 +162,7 @@ class VisitServiceTest {
                 check<VisitCompletedEvent> {
                     assertThat(it.appointmentId).isEqualTo(testAppointmentId)
                     assertThat(it.visitId).isEqualTo(1L)
-                    assertThat(it.completedAt).isEqualTo(now)
+                    assertThat(it.completedAt).isNotNull()
                 }
             )
 
