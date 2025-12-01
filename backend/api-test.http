@@ -1,6 +1,6 @@
 ### Variables
 @baseUrl = http://localhost:8080/api
-@receptionistToken =
+@receptionistToken = eyJhbGciOiJIUzUxMiJ9.eyJ1c2VySWQiOjMsInJvbGUiOiJSRUNFUFRJT05JU1QiLCJzdWIiOiJyZWNlcHRpb25pc3QxIiwiaWF0IjoxNzY0NTk4ODkwLCJleHAiOjE3NjQ2MDI0OTB9.x5GKuZtFD78WCBXXFUCR2TlU-3pl_FWO2_qlJL7m3wj9pUjn78bqccTkw3X0mRwZmx3OKoqSKicAmqjpJcq2BQ
 @patientToken =
 @doctorToken =
 
@@ -192,6 +192,10 @@ Content-Type: application/json
 {
   "notes": "Updated patient notes here."
 }
+
+### Generate patient visit report PDF
+GET {{baseUrl}}/visits/patient/4/report
+Authorization: Bearer {{receptionistToken}}
 
 ### ===== ERROR CASES =====
 
