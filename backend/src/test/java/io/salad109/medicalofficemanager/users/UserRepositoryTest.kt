@@ -1,7 +1,6 @@
 package io.salad109.medicalofficemanager.users
 
 import io.salad109.medicalofficemanager.TestContainersConfig
-import io.salad109.medicalofficemanager.audit.internal.AuditLogRepository
 import io.salad109.medicalofficemanager.users.internal.User
 import io.salad109.medicalofficemanager.users.internal.UserRepository
 import org.assertj.core.api.Assertions.assertThat
@@ -12,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageRequest
+import org.springframework.jdbc.core.JdbcTemplate
 
 @DataJpaTest
 @Import(TestContainersConfig::class)
@@ -22,14 +22,16 @@ class UserRepositoryTest {
     private lateinit var userRepository: UserRepository
 
     @Autowired
-    private lateinit var auditLogRepository: AuditLogRepository
+    private lateinit var jdbcTemplate: JdbcTemplate
 
     @BeforeEach
     fun setUp() {
-        auditLogRepository.deleteAll()
-        auditLogRepository.flush()
-        userRepository.deleteAll()
-        userRepository.flush()
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0")
+        jdbcTemplate.execute("TRUNCATE TABLE audit_log")
+        jdbcTemplate.execute("TRUNCATE TABLE visits")
+        jdbcTemplate.execute("TRUNCATE TABLE appointments")
+        jdbcTemplate.execute("TRUNCATE TABLE users")
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1")
     }
 
     @Test

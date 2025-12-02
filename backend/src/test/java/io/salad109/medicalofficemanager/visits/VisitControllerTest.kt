@@ -5,6 +5,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 
 class VisitControllerTest : BaseControllerTest() {
 
@@ -13,7 +14,21 @@ class VisitControllerTest : BaseControllerTest() {
 
         @Test
         fun `should generate visit report for patient with visits`() {
-            // todo
+            // Given
+            val patientId = patient1.id
+            val token = loginAndGetToken("doctor1", "doctor-pass")
+
+            // Then
+            assertThat(
+                mockMvcTester
+                    .get()
+                    .uri("/api/visits/patient/$patientId/report")
+                    .header("Authorization", "Bearer $token")
+            )
+                .hasStatus(HttpStatus.OK)
+                .hasHeader("Content-Type", MediaType.APPLICATION_PDF.toString())
+                .body()
+                .isNotNull()
         }
 
         @Test
