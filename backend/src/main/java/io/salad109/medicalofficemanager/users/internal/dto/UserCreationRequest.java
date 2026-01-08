@@ -25,7 +25,6 @@ public record UserCreationRequest(
         @Size(max = 15, message = "Phone number must not exceed 15 characters")
         String phoneNumber,
 
-        @Size(min = 11, max = 11, message = "PESEL must be exactly 11 characters")
         String pesel,
 
         @NotNull(message = "Role is required")
